@@ -1,0 +1,13 @@
+# Storage & Lakehouse Configuration (TV 1 - Data Lead)
+lakehouse:
+  raw_vault_path: "data/landing"
+  delta_curated_path: "data/lakehouse/delta/clinical_events"
+  lance_vector_path: "data/lakehouse/lance/patient_embeddings"
+  lancedb_mart_uri: "data/mart/clin.lance"
+  table_name: "fact_clinical_cohort"
+
+ingestion:
+  source_dataset: "Framingham Heart Study (Framingham / PhysioNet)"
+  batch_size: 1000
+  compression: "zstd"
+  hash_algorithm: "sha256"

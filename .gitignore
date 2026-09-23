@@ -1,0 +1,76 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Great Expectations uncommitted files
+great_expectations/uncommitted/
+
+# Heavy Data Files & Databases (DO NOT commit large datasets to Git)
+data/landing/*.csv
+data/landing/*.parquet
+data/landing/*.json
+data/lakehouse/delta/*
+!data/lakehouse/delta/.gitkeep
+data/lakehouse/lance/*
+!data/lakehouse/lance/.gitkeep
+data/mart/clin.lance/*
+!data/mart/clin.lance/.gitkeep
+*.parquet
+*.lance
+*.arrow
+*.db
+*.sqlite3
+
+# Logs & Temporary files
+*.log
+scratch/
+extracted_other_group_plan.txt
+.agents/
