@@ -63,6 +63,7 @@ data/lakehouse/lance/*
 !data/lakehouse/lance/.gitkeep
 data/mart/clin.lance/*
 !data/mart/clin.lance/.gitkeep
+data/mart/*.csv
 *.parquet
 *.lance
 *.arrow
