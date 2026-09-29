@@ -5,6 +5,7 @@ Phân hệ: TV 1 (Clinical Data Engineering Lead)
 """
 
 import os
+from typing import Optional
 import lancedb
 import numpy as np
 import polars as pl
@@ -73,6 +74,47 @@ class LanceDBClinicalManager:
         )
         print(f"[+] Bảng '{table_name}' đã được lưu trữ trong LanceDB thành công ({table.count_rows():,} dòng)!")
         return table
+
+    def create_star_schema_tables(self, df: pl.DataFrame, guidelines_df: Optional[pl.DataFrame] = None, mode: str = "overwrite") -> dict:
+        """
+        Khởi tạo mô hình Đa chiều Star Schema hoàn chỉnh (Slide 3.2: OLTP & OLAP):
+        - Bảng Dimension 1: dim_patient (Nhân khẩu học, tuổi tác, giới tính, trung tâm y tế)
+        - Bảng Dimension 2: dim_clinical_metrics (Chỉ số sinh tồn, cận lâm sàng, tiền sử bệnh)
+        - Bảng Dimension 3: dim_aha_guidelines (Bảng tra cứu quy chuẩn lâm sàng quốc tế AHA/JNC-7 & ICD-10)
+        - Bảng Fact: fact_clinical_cohort (Độ đo sự kiện, biến cố, phân loại rủi ro và véc-tơ kiểu hình đa thể thức)
+        """
+        print("\n[*] [Star Schema - OLAP Mart] Đang kiến tạo cấu trúc Star Schema trong LanceDB...")
+
+        # 1. Bảng Chiều Bệnh nhân (dim_patient)
+        patient_cols = [c for c in ["person_id", "age", "is_male", "education", "current_smoker", "cigs_per_day", "prevalent_stroke", "prevalent_hyp", "center_source"] if c in df.columns]
+        df_dim_patient = df.select(patient_cols)
+        tbl_dim_patient = self.db.create_table("dim_patient", data=df_dim_patient.to_arrow(), mode=mode)
+        print(f"[+] [Star Schema] Đã tạo bảng Chiều 'dim_patient' ({tbl_dim_patient.count_rows():,} dòng)")
+
+        # 2. Bảng Chiều Cận lâm sàng & Bệnh lý (dim_clinical_metrics)
+        metric_cols = [c for c in ["person_id", "tot_chol", "sys_bp", "dia_bp", "BMI", "heart_rate", "glucose", "bp_meds", "diabetes"] if c in df.columns]
+        df_dim_metrics = df.select(metric_cols)
+        tbl_dim_metrics = self.db.create_table("dim_clinical_metrics", data=df_dim_metrics.to_arrow(), mode=mode)
+        print(f"[+] [Star Schema] Đã tạo bảng Chiều 'dim_clinical_metrics' ({tbl_dim_metrics.count_rows():,} dòng)")
+
+        # 3. Bảng Chiều Hướng dẫn Lâm sàng (dim_aha_guidelines)
+        tbl_guidelines = None
+        if guidelines_df is not None:
+            tbl_guidelines = self.db.create_table("dim_aha_guidelines", data=guidelines_df.to_arrow(), mode=mode)
+            print(f"[+] [Star Schema] Đã tạo bảng Chiều 'dim_aha_guidelines' ({tbl_guidelines.count_rows():,} dòng)")
+
+        # 4. Bảng Sự kiện Biến cố (fact_clinical_cohort) có véc-tơ đa thể thức
+        tbl_fact = self.create_cohort_table(df, table_name="fact_clinical_cohort", mode=mode)
+        print(f"[+] [Star Schema] Đã liên kết Bảng Sự kiện 'fact_clinical_cohort' thành công!")
+
+        res = {
+            "dim_patient": tbl_dim_patient,
+            "dim_clinical_metrics": tbl_dim_metrics,
+            "fact_clinical_cohort": tbl_fact
+        }
+        if tbl_guidelines is not None:
+            res["dim_aha_guidelines"] = tbl_guidelines
+        return res
 
     def get_table(self, table_name: str = "fact_clinical_cohort"):
         """

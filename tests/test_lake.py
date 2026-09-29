@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
 
 from biomed_lake.storage.d_mgr import DeltaLakeManager
 from biomed_lake.storage.lancedb_mgr import LanceDBClinicalManager
+from biomed_lake.storage.integration import ClinicalDataIntegrationEngine
 
 
 @pytest.fixture(scope="module")
@@ -65,3 +66,111 @@ def test_lancedb_vector_knn(tmp_path, sample_csv):
     res = lance_mgr.find_similar_patients(query_vec, k=2, table_name="test_cohort")
     assert res.height == 2
     assert "_distance" in res.columns
+
+
+def test_data_integration_and_star_schema(tmp_path, sample_csv):
+    """
+    Kiểm thử Tích hợp dữ liệu đa nguồn (Slide 4) và Mô hình Star Schema (Slide 3.2)
+    """
+    feeds_dir = str(tmp_path / "feeds")
+    demo_file, labs_file = ClinicalDataIntegrationEngine.partition_raw_to_feeds(sample_csv, feeds_dir)
+
+    engine = ClinicalDataIntegrationEngine()
+    df_integrated, audit = engine.mediate_and_link(demo_file, labs_file, linkage_key="person_id")
+
+    assert df_integrated.height == 3
+    assert audit["matched_patients"] == 3
+    assert "person_id" in df_integrated.columns
+    assert "is_male" in df_integrated.columns
+    assert "tot_chol" in df_integrated.columns
+
+    # Kiểm thử tạo Star Schema trong LanceDB
+    lance_dir = str(tmp_path / "lance_star_test")
+    lance_mgr = LanceDBClinicalManager(lance_dir)
+    star_tables = lance_mgr.create_star_schema_tables(df_integrated, mode="overwrite")
+
+    assert "dim_patient" in star_tables
+    assert "dim_clinical_metrics" in star_tables
+    assert "fact_clinical_cohort" in star_tables
+    assert star_tables["dim_patient"].count_rows() == 3
+    assert star_tables["dim_clinical_metrics"].count_rows() == 3
+    assert star_tables["fact_clinical_cohort"].count_rows() == 3
+
+
+def test_multi_center_and_aha_enrichment(tmp_path):
+    """
+    Kiểm thử Tích hợp Đa Trung Tâm (Framingham + Cardio Study) và Làm giàu AHA/JNC-7
+    """
+    # 1. Tạo dữ liệu giả lập Framingham
+    fhs_file = str(tmp_path / "fhs.csv")
+    pl.DataFrame({
+        "male": [1, 0],
+        "age": [39, 46],
+        "education": [4, 2],
+        "currentSmoker": [0, 0],
+        "cigsPerDay": [0, 0],
+        "BPMeds": [0, 0],
+        "prevalentStroke": [0, 0],
+        "prevalentHyp": [0, 0],
+        "diabetes": [0, 0],
+        "totChol": [195.0, 250.0],
+        "sysBP": [106.0, 145.0],
+        "diaBP": [70.0, 92.0],
+        "BMI": [26.97, 28.73],
+        "heartRate": [80.0, 95.0],
+        "glucose": [77.0, 76.0],
+        "TenYearCHD": [0, 1]
+    }).write_csv(fhs_file)
+
+    # 2. Tạo dữ liệu giả lập Cardio Study
+    cardio_file = str(tmp_path / "cardio.csv")
+    pl.DataFrame({
+        "id": [1, 2],
+        "age": [18393, 20228],
+        "gender": [2, 1],
+        "height": [168, 156],
+        "weight": [62.0, 85.0],
+        "ap_hi": [110.0, 182.0],
+        "ap_lo": [80.0, 122.0],
+        "cholesterol": [1, 3],
+        "gluc": [1, 2],
+        "smoke": [0, 1],
+        "alco": [0, 0],
+        "active": [1, 1],
+        "cardio": [0, 1]
+    }).write_csv(cardio_file, separator=";")
+
+    # 3. Tạo dữ liệu AHA Guidelines
+    guidelines_file = str(tmp_path / "guidelines.csv")
+    df_guide = pl.DataFrame({
+        "guideline_id": [1, 2, 3, 4, 5],
+        "bp_stage": ["NORMAL", "ELEVATED", "STAGE_1_HYPERTENSION", "STAGE_2_HYPERTENSION", "HYPERTENSIVE_CRISIS"],
+        "min_sys_bp": [0.0, 120.0, 130.0, 140.0, 180.0],
+        "max_sys_bp": [119.9, 129.9, 139.9, 179.9, 999.0],
+        "min_dia_bp": [0.0, 0.0, 80.0, 90.0, 120.0],
+        "max_dia_bp": [79.9, 79.9, 89.9, 119.9, 999.0],
+        "clinical_action": ["Action1", "Action2", "Action3", "Action4", "Action5"],
+        "icd10_code": ["R03.0", "R03.0", "I10", "I10.9", "I16.9"]
+    })
+    df_guide.write_csv(guidelines_file)
+
+    # 4. Kiểm tra Tích hợp Đa Trung Tâm
+    engine = ClinicalDataIntegrationEngine()
+    df_merged = engine.integrate_multi_center_cohorts(fhs_file, cardio_file)
+    assert df_merged.height == 4
+    assert "person_id" in df_merged.columns
+    assert "center_source" in df_merged.columns
+    assert set(df_merged["center_source"].to_list()) == {"FRAMINGHAM_US", "CARDIO_CLINICAL_INTL"}
+
+    # 5. Kiểm tra làm giàu AHA Guidelines
+    df_enriched = engine.enrich_with_clinical_guidelines(df_merged, guidelines_file)
+    assert "bp_stage" in df_enriched.columns
+    assert "icd10_code" in df_enriched.columns
+
+    # 6. Kiểm tra tạo Star Schema với Bảng Hướng dẫn
+    lance_dir = str(tmp_path / "lance_multi_star")
+    lance_mgr = LanceDBClinicalManager(lance_dir)
+    star_tables = lance_mgr.create_star_schema_tables(df_enriched, guidelines_df=df_guide, mode="overwrite")
+    assert "dim_aha_guidelines" in star_tables
+    assert star_tables["dim_patient"].count_rows() == 4
+    assert star_tables["dim_aha_guidelines"].count_rows() == 5

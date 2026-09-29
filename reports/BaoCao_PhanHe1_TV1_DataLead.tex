@@ -71,7 +71,7 @@
 \thispagestyle{fancy}
 
 \begin{abstract}
-Tài liệu này tổng kết toàn bộ kết quả triển khai kỹ thuật của \textbf{Phân hệ 1 (TV 1 -- Data Lead)} trong dự án Bài tập lớn học phần \textit{Quản trị Dữ liệu và Trực quan hóa (IT5425)}. Phân hệ 1 đóng vai trò là kiến trúc thượng nguồn (Upstream Infrastructure), chịu trách nhiệm thiết lập kho dữ liệu thô bất biến (Raw Landing Vault), xây dựng tầng Curated Lakehouse dựa trên định dạng giao dịch ACID \textbf{Delta Lake} (tuân thủ quy chuẩn kiểm toán FDA 21 CFR Part 11 và HIPAA Time-Travel), và thiết kế tầng phân tích tập trung đa thể thức \textbf{LanceDB} lưu trữ mô hình dữ liệu chuẩn quốc tế \textbf{OMOP CDM v5.4} kết hợp chỉ mục véc-tơ hồ sơ bệnh nhân phục vụ suy luận ca bệnh tương đồng ($k$-NN Case-Based Reasoning). Toàn bộ luồng dữ liệu (Pipeline 01) đã được tự động hóa hoàn toàn, nạp chuẩn xác $4{,}240$ hồ sơ bệnh nhân từ tập dữ liệu kinh điển \textit{Framingham Heart Study}, đạt thời gian thực thi siêu tốc $\mathbf{0.76}$ giây và vượt qua $100\%$ các bài kiểm thử tự động (Unit Tests) với \texttt{pytest}.
+Tài liệu này tổng kết toàn bộ kết quả triển khai kỹ thuật của \textbf{Phân hệ 1 (TV 1 -- Data Lead)} trong dự án Bài tập lớn học phần \textit{Quản trị Dữ liệu và Trực quan hóa (IT5425)}. Phân hệ 1 đóng vai trò là kiến trúc thượng nguồn (Upstream Infrastructure), chịu trách nhiệm thiết lập kho dữ liệu thô bất biến (Raw Landing Vault) tích hợp từ \textbf{3 nguồn dữ liệu độc lập thực tế}: (1) Đoàn hệ dịch tễ cộng đồng \textit{Framingham Heart Study} ($4{,}240$ ca, Boston, Mỹ); (2) Đoàn hệ lâm sàng đo lường thực tế \textit{Cardiovascular Clinical Study} ($5{,}000$ ca); (3) Bảng quy chuẩn phân loại lâm sàng của Hội Tim Mạch Hoa Kỳ \textit{AHA/ACC \& JNC-7 Guidelines} kèm mã bệnh quốc tế \textbf{ICD-10}. Hệ thống thực hiện trọn vẹn chu trình hòa giải lược đồ (\textbf{Schema Mediation}), hợp nhất đa trung tâm quy mô lớn ($\mathbf{9{,}240}$ hồ sơ bệnh nhân), ghi nhận giao dịch ACID \textbf{Delta Lake} (tuân thủ kiểm toán FDA 21 CFR Part 11 và HIPAA Time-Travel), và thiết kế kho dữ liệu đa chiều \textbf{LanceDB Star Schema} kết hợp chỉ mục véc-tơ đa thể thức phục vụ suy luận ca bệnh tương đồng ($k$-NN Case-Based Reasoning). Toàn bộ luồng dữ liệu (Pipeline 01) đạt thời gian thực thi siêu tốc $\mathbf{0.34}$ giây và vượt qua $100\%$ ($4/4$) các bài kiểm thử tự động với \texttt{pytest}.
 \end{abstract}
 
 \vspace{0.3cm}
@@ -86,17 +86,9 @@ Trong kiến trúc tổng thể của dự án Bài tập lớn IT5425, Phân h�
 \begin{itemize}
     \item \textbf{Cung cấp dữ liệu chuẩn mực cho TV 2:} TV 2 cần bảng dữ liệu sạch từ Delta Lake để thiết lập bộ quy tắc kiểm định chất lượng \textit{Great Expectations} và kiểm tra độ an toàn bảo mật toán học \textit{pycanon} ($K$-Anonymity $k \ge 5$, $L$-Diversity $l \ge 2$).
     \item \textbf{Cung cấp nguồn dữ liệu phân tích cho TV 3:} TV 3 truy xuất bảng phân tích thuần nhất từ LanceDB để tiến hành phân tích khám phá (EDA), kiểm định giả thuyết \textit{Welch's $t$-test}, \textit{Mann-Whitney $U$ test} và tính toán tỷ số chênh \textit{Odds Ratios}.
-    \item \textbf{Cung cấp ma trận biến số và nhãn biến cố cho TV 4 \& TV 5:} Huấn luyện các mô hình thống kê y học (\textit{Logistic Regression}, \textit{ElasticNet}, \textit{Spline GAM}) và đánh giá độ phù hợp (\textit{Hosmer-Lemeshow}, \textit{Brier score}, \textit{DeLong ROC test}).
+    \item \textbf{Cung cấp ma trận biến số và nhãn biến cố cho TV 4 \& TV 5:} Huấn luyện các mô hình thống kê y học (\textit{Logistic Regression}, \textit{ElasticNet}, \textit{Spline GAM}) và đánh giá độ phù hợp (\textit{Hosmer-Lemeshow}, \textit{Brier score}, \textit{DeLong ROC test}). Đặc biệt, việc tích hợp nguồn thứ 2 cung cấp tập \textbf{Kiểm định ngoại viện (External Validation Cohort)} độc lập đắt giá cho TV 5.
     \item \textbf{Cung cấp API truy vấn tương đồng ca bệnh cho TV 6:} Hỗ trợ ứng dụng \textit{Plotly Dash CDSS} thực hiện tìm kiếm Top-$K$ bệnh nhân tương đồng trong lịch sử ($k$-NN) khi bác sĩ thao tác trên thanh trượt rủi ro thời gian thực.
 \end{itemize}
-
-\begin{infobox}[CHUYỂN ĐỔI CHIẾN LƯỢC: TỪ CHDB SANG LANCEDB]
-Trước đây, hệ thống dự kiến sử dụng \texttt{chDB} (ClickHouse nhúng in-process). Tuy nhiên, sau khi đối chiếu với nhóm \textit{Smart Dairy Factory} trong cùng lớp IT5425, nhóm nhận thấy nguy cơ trùng lặp công nghệ rất cao. TV 1 đã chủ động tái cấu trúc tầng Data Mart sang \textbf{LanceDB}:
-\begin{enumerate}
-    \item \textbf{Khác biệt hoàn toàn (0\% trùng lặp):} Nhóm Smart Dairy dùng chDB cho dữ liệu cảm biến thời gian thực của máy móc. Nhóm Y sinh dùng LanceDB cho dữ liệu lâm sàng đa thể thức (Vector-Columnar).
-    \item \textbf{Bổ sung năng lực vượt trội:} Ngoài việc truy vấn bảng OMOP CDM nhanh gấp hàng chục lần Parquet qua cơ chế Zero-Copy Apache Arrow, LanceDB cho phép đánh chỉ mục véc-tơ đa chiều để tìm kiếm bệnh nhân tương đồng ($k$-NN) -- một tính năng vô cùng đắt giá trong Y học chính xác (Precision Medicine).
-\end{enumerate}
-\end{infobox}
 
 % ==============================================================================
 \section{Đặc Tả Kỹ Thuật Các Tệp Tin Đã Xây Dựng \& Nguyên Lý Xử Lý}
@@ -104,99 +96,119 @@ Trước đây, hệ thống dự kiến sử dụng \texttt{chDB} (ClickHouse n
 
 Phân hệ 1 đã hoàn thành và kiểm thử thành công 6 thành phần mã nguồn cốt lõi:
 
-\subsection{1. Tải \& Kiểm Toán Dữ Liệu Thô (\texttt{pipelines/download_framingham.py})}
+\subsection{1. Tải \& Kiểm Toán 3 Nguồn Dữ Liệu Độc Lập (\texttt{pipelines/download_clinical_sources.py})}
+Hệ thống thu nạp dữ liệu từ 3 nguồn độc lập có bản quyền mở uy tín:
 \begin{itemize}
-    \item \textbf{Nguồn dữ liệu:} Bộ dữ liệu dịch tễ học tim mạch kinh điển \textit{Framingham Heart Study} (4,240 bản ghi bệnh nhân theo dõi 10 năm, 16 thuộc tính sinh lý và lối sống).
-    \item \textbf{Chuẩn hóa ký tự xuống dòng (LF Normalization):} File CSV gốc chứa ký tự kết thúc dòng kiểu Mac OS cổ điển (\texttt{\textbackslash r}). Script tự động chuẩn hóa sang định dạng chuẩn Unix (\texttt{\textbackslash n}) để tránh hiện tượng parser nhận nhầm toàn bộ file thành một dòng đơn $63{,}616$ cột.
-    \item \textbf{Chữ ký số kiểm toán bất biến (FDA 21 CFR Part 11):} Tự động tính toán mã băm SHA-256 trên nội dung tệp tin đã chuẩn hóa và lưu tại \texttt{data/landing/framingham.csv.sha256}:
-    \begin{equation}
-        \text{SHA-256} = \texttt{63618ce2dcbef80363ca7fbe4fba3214b5d5976d7fbd96e53b783e5b32a83e06}
-    \end{equation}
-    Mã băm này đóng vai trò là bằng chứng pháp lý chứng minh dữ liệu gốc không bị chỉnh sửa trái phép trong suốt chu trình nghiên cứu.
+    \item \textbf{Nguồn 1 -- Framingham Heart Study ($4{,}240$ bản ghi):} Dữ liệu dịch tễ học cộng đồng kinh điển của Boston, Mỹ, theo dõi biến cố tim mạch 10 năm với 16 thuộc tính.
+    \item \textbf{Nguồn 2 -- Cardiovascular Clinical Study ($5{,}000$ bản ghi):} Dữ liệu đo lường cận lâm sàng thực tế của bệnh nhân (tuổi theo ngày, chiều cao, cân nặng, huyết áp tâm thu/tâm trương, nồng độ đường huyết, cholesterol, biến cố tim mạch).
+    \item \textbf{Nguồn 3 -- Bảng Tra Cứu Quy Chuẩn AHA/ACC \& JNC-7 Guidelines:} Định nghĩa các ngưỡng huyết áp sinh lý, khuyến cáo điều trị và mã bệnh quốc tế \textbf{ICD-10} (\texttt{R03.0}, \texttt{I10}, \texttt{I10.9}, \texttt{I16.9}).
+    \item \textbf{Chữ ký số kiểm toán bất biến (FDA 21 CFR Part 11):} Tự động tính toán mã băm SHA-256 độc lập cho từng file trong Landing Zone, đảm bảo tính bất biến của dữ liệu gốc.
 \end{itemize}
 
-\subsection{2. Động Cơ Giao Dịch ACID Delta Lake (\texttt{src/biomed_lake/storage/d_mgr.py})}
-Lớp \texttt{DeltaLakeManager} chịu trách nhiệm toàn bộ chu trình xử lý tại tầng Curated Lakehouse:
+\subsection{2. Tích Hợp Đa Trung Tâm \& Hòa Giải Lược Đồ (\texttt{src/biomed_lake/storage/integration.py})}
+Căn cứ theo \textbf{Chương 3.2 (OLTP \& OLAP)} và \textbf{Chương 4 (Data Integration \& Preprocessing)} trong slide bài giảng, lớp \texttt{ClinicalDataIntegrationEngine} giải quyết trọn vẹn bài toán tích hợp dữ liệu đa nguồn:
 \begin{itemize}
-    \item \textbf{Ép kiểu tối ưu (Memory Optimization via Polars):} Thay vì sử dụng kiểu mặc định 64-bit (\texttt{float64}, \texttt{int64}) gây lãng phí tài nguyên, module tự động phân tích schema và ép kiểu nhỏ gọn:
+    \item \textbf{Tầng Wrappers \& Hòa giải xung đột lược đồ (Schema Mediation):}
     \begin{itemize}
-        \item Các biến cờ nhị phân (\texttt{is\_male}, \texttt{current\_smoker}, \texttt{bp\_meds}, \texttt{prevalent\_stroke}, \texttt{diabetes}, \texttt{ten\_year\_chd}) $\rightarrow$ \texttt{Int8}.
-        \item Các biến đếm và đo lường nguyên (\texttt{age}, \texttt{cigs\_per\_day}, \texttt{tot\_chol}, \texttt{heart\_rate}) $\rightarrow$ \texttt{Int16}.
-        \item Các biến đo lường liên tục (\texttt{sys\_bp}, \texttt{dia\_bp}, \texttt{BMI}, \texttt{glucose}) $\rightarrow$ \texttt{Float32}.
+        \item \textit{Wrapper Framingham:} Ánh xạ các cột \texttt{male}, \texttt{sysBP}, \texttt{totChol}, \texttt{heartRate} sang thuộc tính chuẩn OMOP CDM v5.4, gắn nhãn \texttt{center\_source = "FRAMINGHAM\_US"}.
+        \item \textit{Wrapper Cardio Study:} Chuyển đổi tuổi từ ngày sang năm ($\text{age} = \text{round}(\text{age\_days} / 365.25)$); chuyển đổi giới tính mã số ($1/2$) sang nhị phân (\texttt{is\_male}); tự động tính chỉ số khối cơ thể từ chiều cao và cân nặng ($\text{BMI} = \text{weight} / (\text{height}/100)^2$); hòa giải huyết áp \texttt{ap\_hi}, \texttt{ap\_lo} sang \texttt{sys\_bp}, \texttt{dia\_bp}; gắn nhãn \texttt{center\_source = "CARDIO\_CLINICAL\_INTL"}.
     \end{itemize}
-    Chiến lược này giúp \textbf{giảm hơn 70\% dung lượng RAM} và tối ưu hóa băng thông đọc ghi cột.
-    \item \textbf{Giao dịch ACID \& Nhật ký kiểm toán (\texttt{\_delta\_log}):} Ghi dữ liệu thông qua giao thức Delta Lake. Mọi thay đổi đều được ghi nhận vào nhật ký kiểm toán giao dịch bất biến (Audit Trail).
-    \item \textbf{Truy vấn du hành thời gian (Time-Travel):} Cung cấp hàm \texttt{read\_time\_travel(version=k)} cho phép truy xuất chính xác trạng thái dữ liệu tại bất kỳ phiên bản nào trong quá khứ, đảm bảo tính tái lập (reproducibility) $100\%$ cho các thử nghiệm lâm sàng.
+    \item \textbf{Hợp nhất Đa Trung Tâm (Multi-Center Harmonization):}
+    Ghép hợp nhất 2 nguồn thành tập dữ liệu quy mô lớn $\mathbf{9{,}240}$ hồ sơ bệnh nhân ($4{,}240$ ca Framingham, chiếm $45.9\%$ và $5{,}000$ ca Cardio Study, chiếm $54.1\%$), tạo mã định danh duy nhất \texttt{person\_id} chạy từ $1$ đến $9{,}240$.
+    \item \textbf{Làm giàu dữ liệu theo chuẩn y tế quốc tế (Guidelines Enrichment):}
+    Thực hiện phép Lookup Join đối soát chỉ số huyết áp để phân loại mức độ tăng huyết áp chuẩn JNC-7 (\texttt{NORMAL}, \texttt{ELEVATED}, \texttt{STAGE\_1\_HYPERTENSION}, \texttt{STAGE\_2\_HYPERTENSION}, \texttt{HYPERTENSIVE\_CRISIS}) và gắn mã chẩn đoán quốc tế \textbf{ICD-10}.
 \end{itemize}
 
-\subsection{3. Kho Dữ Liệu Đa Thể Thức LanceDB (\texttt{src/biomed_lake/storage/lancedb_mgr.py})}
-Lớp \texttt{LanceDBClinicalManager} quản trị tầng Data Mart phân tích:
+\subsection{3. Động Cơ Giao Dịch ACID Delta Lake (\texttt{src/biomed_lake/storage/d_mgr.py})}
+Lớp \texttt{DeltaLakeManager} quản trị tầng Curated Lakehouse:
 \begin{itemize}
+    \item \textbf{Lưu trữ tập dữ liệu hợp nhất $9{,}240$ bệnh nhân:} Áp dụng cơ chế ép kiểu Polars tối ưu bộ nhớ (Int8 cho cờ phân loại, Int16 cho tuổi và nhịp tim, Float32 cho huyết áp và BMI), giảm $>70\%$ dung lượng RAM.
+    \item \textbf{Giao dịch ACID \& Nhật ký kiểm toán (\texttt{\_delta\_log}):} Ghi dữ liệu thông qua giao thức Delta Lake, tự động tăng phiên bản và lưu vết toàn bộ lịch sử biến động.
+    \item \textbf{Truy vấn du hành thời gian (Time-Travel):} Cho phép truy xuất chính xác trạng thái dữ liệu tại bất kỳ mốc phiên bản nào trong quá khứ.
+\end{itemize}
+
+\subsection{4. Kho Dữ Liệu Đa Thể Thức LanceDB \& Mô Hình Star Schema (\texttt{src/biomed_lake/storage/lancedb_mgr.py})}
+Hiện thực hóa mô hình dữ liệu đa chiều \textbf{Star Schema} theo đúng Chương 3.2 của bài giảng:
+\begin{itemize}
+    \item \textbf{Kiến trúc Star Schema trong LanceDB:}
+    \begin{itemize}
+        \item \textbf{Bảng Chiều 1 (\texttt{dim\_patient}):} Quản lý $9{,}240$ hồ sơ nhân khẩu học, lối sống và trung tâm y tế điều trị.
+        \item \textbf{Bảng Chiều 2 (\texttt{dim\_clinical\_metrics}):} Quản lý $9{,}240$ bản ghi đo lường sinh hóa, huyết áp và tiền sử bệnh.
+        \item \textbf{Bảng Chiều 3 (\texttt{dim\_aha_guidelines}):} Bảng quy chuẩn tra cứu lâm sàng quốc tế của Hội Tim Mạch Hoa Kỳ (AHA/ACC \& JNC-7).
+        \item \textbf{Bảng Sự kiện (\texttt{fact\_clinical\_cohort}):} Bảng Fact trung tâm ($9{,}240$ dòng) lưu trữ toàn bộ chỉ số đo lường, nhãn biến cố tim mạch 10 năm (\texttt{ten\_year\_chd}), phân loại \texttt{bp\_stage}, mã bệnh \texttt{icd10_code} và trường véc-tơ đa thể thức.
+    \end{itemize}
     \item \textbf{Sinh véc-tơ thể trạng bệnh nhân (Biomarker Phenotype Embeddings):}
-    Trích xuất 8 chỉ số biomarker quan trọng nhất cấu thành véc-tơ đa chiều:
+    Trích xuất 8 chỉ số biomarker quan trọng nhất cấu thành véc-tơ đa chiều trong không gian $[0, 1]$ qua phép chuẩn hóa Min-Max:
     \begin{equation}
         \bm{x} = \big[ \text{age},\, \text{sys\_bp},\, \text{dia\_bp},\, \text{tot\_chol},\, \text{glucose},\, \text{BMI},\, \text{cigs\_per\_day},\, \text{heart\_rate} \big]^T \in \mathbb{R}^8.
     \end{equation}
-    Áp dụng phép chuẩn hóa Min-Max để đưa từng chiều về không gian $[0, 1]$:
-    \begin{equation}
-        \tilde{x}_j = \frac{x_j - \min(X_j)}{\max(X_j) - \min(X_j)}, \quad \forall j \in \{1, \dots, 8\}.
-    \end{equation}
-    \item \textbf{Lưu trữ bảng \texttt{fact\_clinical\_cohort}:} Lưu trữ đồng thời cả các cột thuộc tính lâm sàng truyền thống lẫn cột véc-tơ \texttt{phenotype\_vector} trong cùng một bảng LanceDB tại \texttt{data/mart/clin.lance}.
-    \item \textbf{Truy vấn ca bệnh tương đồng ($k$-NN Search):} Sử dụng hàm \texttt{find\_similar\_patients(query\_vector, k)} để tính toán khoảng cách Euclidean (L2 Distance) giữa bệnh nhân mới và toàn bộ hồ sơ quá khứ:
-    \begin{equation}
-        d(\bm{q}, \bm{x}_i) = \sqrt{\sum_{j=1}^8 (\tilde{q}_j - \tilde{x}_{ij})^2},
-    \end{equation}
-    trả về Top-$K$ bệnh nhân có $d$ nhỏ nhất cùng nhãn biến cố 10 năm thực tế (\texttt{ten\_year\_chd}) để bác sĩ tham vấn.
+    \item \textbf{Truy vấn ca bệnh tương đồng ($k$-NN Search):} Sử dụng hàm \texttt{find\_similar\_patients(query\_vector, k)} tính khoảng cách Euclidean trên LanceDB để trả về Top-$K$ ca bệnh tương đồng nhất trong lịch sử phục vụ suy luận lâm sàng.
 \end{itemize}
 
-\subsection{4. Kịch Bản Thực Thi Toàn Trình (\texttt{pipelines/01_lake.py})}
-Tích hợp tự động 3 giai đoạn:
-$$\text{CSV thô} \xrightarrow[\text{SHA-256}]{\text{Ingest}} \text{Polars Schema Cast} \xrightarrow[\text{ACID}]{\text{Write}} \text{Delta Lake} \xrightarrow[\text{MinMax}]{\text{Embed}} \text{LanceDB Mart} \xrightarrow{k\text{-NN}} \text{Test Similarity}$$
+\subsection{5. Kịch Bản Thực Thi Toàn Trình (\texttt{pipelines/01_lake.py})}
+Tích hợp tự động 5 giai đoạn liên hoàn:
+$$\text{3 Nguồn Thô} \xrightarrow[\text{Mediation}]{\text{Wrappers}} \text{Hợp Nhất 9,240 Ca} \xrightarrow[\text{ICD-10}]{\text{AHA/JNC-7}} \text{Delta Lake ACID} \xrightarrow[\text{Star Schema}]{\text{MinMax}} \text{LanceDB Mart} \xrightarrow{k\text{-NN}} \text{CBR Matching}$$
 
-\subsection{5. Bộ Kiểm Thử Tự Động (\texttt{tests/test_lake.py})}
-Bao gồm các kiểm thử tự động với \texttt{pytest}:
+\subsection{6. Bộ Kiểm Thử Tự Động (\texttt{tests/test_lake.py})}
+Bao gồm $4$ bài kiểm thử tự động với \texttt{pytest}:
 \begin{itemize}
-    \item \texttt{test_delta_lake_ingest_and_audit}: Kiểm tra ép kiểu, bổ sung khóa chính \texttt{person_id}, tính bất biến của nhật ký \texttt{\_delta\_log}, và tính đúng đắn của tính năng Time-Travel.
-    \item \texttt{test_lancedb_vector_knn}: Kiểm tra tạo bảng véc-tơ trong LanceDB và xác minh thuật toán $k$-NN trả về đúng số lượng ca bệnh kèm trường khoảng cách \texttt{\_distance}.
+    \item \texttt{test_delta_lake_ingest_and_audit}: Kiểm tra ép kiểu, bổ sung khóa chính \texttt{person_id}, nhật ký \texttt{\_delta\_log}, và tính năng Time-Travel.
+    \item \texttt{test_lancedb_vector_knn}: Kiểm tra tạo bảng véc-tơ LanceDB và thuật toán tìm kiếm tương đồng $k$-NN.
+    \item \texttt{test_data_integration_and_star_schema}: Kiểm tra phân mảnh dọc và ghép nối dữ liệu nội bộ.
+    \item \texttt{test_multi_center_and_aha_enrichment}: Kiểm tra toàn trình việc hòa giải lược đồ đa trung tâm (Framingham + Cardio Study) và làm giàu dữ liệu bằng bảng chuẩn y khoa AHA/JNC-7.
 \end{itemize}
 
 % ==============================================================================
-\section{Kết Quả Thực Nghiệm & Đo Đạc Hiệu Năng}
+\section{Kết Quả Thực Nghiệm \& Đo Đạc Hiệu Năng}
 % ==============================================================================
 
 \subsection{Kết Quả Chạy Toàn Trình Pipeline 01}
 Kịch bản \texttt{pipelines/01_lake.py} đã chạy hoàn hảo trên hệ thống:
 
 \begin{lstlisting}[language=bash]
-======================================================================
-PIPELINE 01: CLINICAL LAKEHOUSE & LANCEDB MART INGESTION (TV 1)
-======================================================================
---- GIAI DOAN 1: DELTA LAKE ACID INGESTION ---
-[*] Dang nap du lieu tu: data/landing/framingham.csv
-[+] Da chuan hoa 4,240 ban ghi benh nhan voi 17 thuoc tinh.
-[*] Dang ghi du lieu vao Delta Lake (overwrite): data/lakehouse/delta/clinical_events
-[+] Ghi Delta Lake thanh cong! Phien ban hien tai (version): 1
-[v] Nhat ky kiem toan FDA 21 CFR Part 11: Da ghi nhan 2 giao dich.
+================================================================================
+[*] PIPELINE 01: MULTI-SOURCE CLINICAL INTEGRATION & STAR SCHEMA LAKEHOUSE
+================================================================================
+--- GIAI DOAN 1: MULTI-CENTER INTEGRATION & SCHEMA MEDIATION ---
+[*] [Wrapper - Framingham] Doc va chuan hoa: framingham.csv
+[+] [Wrapper - Framingham] Hoa giai thanh cong 4,240 benh nhan.
+[*] [Wrapper - Cardio Study] Doc va hoa giai luoc do: cardio_study.csv
+[+] [Wrapper - Cardio Study] Hoa giai thanh cong 5,000 benh nhan.
+[+] Hop nhat Da Trung Tam thanh cong!
+    * Nguon 1 (Framingham Boston): 4,240 benh nhan (45.9%)
+    * Nguon 2 (Cardio Clinical): 5,000 benh nhan (54.1%)
+    * Tong quy mo tap phan tich: 9,240 ho so benh nhan.
 
---- GIAI DOAN 2: LANCEDB MULTIMODAL & VECTOR MART ---
-[*] Dang chuan bi vec-to dac trung cho 4,240 benh nhan...
-[*] Dang ghi bang 'fact_clinical_cohort' vao LanceDB: data/mart/clin.lance
-[+] Bang 'fact_clinical_cohort' da duoc luu tru thanh cong (4,240 dong)!
+--- GIAI DOAN 2: CLINICAL GUIDELINES ENRICHMENT (LOOKUP JOIN) ---
+[*] [Guidelines Enrichment] Lien ket voi tu dien chuan y te: ref_aha_jnc7_guidelines.csv
+[+] Lam giau du lieu thanh cong! Da gan nhan lam sang va ma ICD-10 cho 9,240 benh nhan.
 
---- GIAI DOAN 3: KIEM THU SUY LUAN BENH NHAN TUONG DONG (k-NN) ---
-[*] Thuc hien truy van Top-3 ca benh tuong dong nhat voi vector dau vao...
-shape: (3, 7)
-+-----------+-----+---------+--------+--------+--------------+-----------+
-| person_id | age | is_male | sys_bp | dia_bp | ten_year_chd | _distance |
-+-----------+-----+---------+--------+--------+--------------+-----------+
-| 2629      | 50  | 0       | 165.0  | 90.0   | 0            | 0.014220  |
-| 1744      | 52  | 0       | 159.0  | 95.0   | 0            | 0.015349  |
-| 3102      | 51  | 0       | 150.5  | 95.0   | 0            | 0.018502  |
-+-----------+-----+---------+--------+--------+--------------+-----------+
+--- GIAI DOAN 3: CURATED DELTA LAKE ACID INGESTION ---
+[*] Dang ghi 9,240 ban ghi hop nhat vao Delta Lake (overwrite)
+[+] Ghi Delta Lake thanh cong! Phien ban hien tai (version): 3
+[v] Nhat ky kiem toan FDA 21 CFR Part 11: Da ghi nhan 4 giao dich.
 
-======================================================================
-PIPELINE 01 HOAN TAT THANH CONG TRONG 0.76 GIAY!
-======================================================================
+--- GIAI DOAN 4: LANCEDB STAR SCHEMA MULTIMODAL MART ---
+[+] Hoan tat kien truc Star Schema gom:
+    - Bang Chieu: 'dim_patient' (9,240 dong)
+    - Bang Chieu: 'dim_clinical_metrics' (9,240 dong)
+    - Bang Chieu: 'dim_aha_guidelines' (5 dong)
+    - Bang Su kien: 'fact_clinical_cohort' (9,240 dong)
+
+--- GIAI DOAN 5: KIEM THU SUY LUAN BENH NHAN TUONG DONG (k-NN) ---
+[*] Thuc hien truy van Top-3 ca benh tuong dong nhat voi vector dau vao tren tap 9,240 benh nhan...
+shape: (3, 9)
++-----------+-----+---------+--------+-----+---------------------+------------+----------------------+-----------+
+| person_id | age | is_male | sys_bp | ... | bp_stage            | icd10_code | center_source        | _distance |
++-----------+-----+---------+--------+-----+---------------------+------------+----------------------+-----------+
+| 8812      | 50  | 0       | 180.0  | ... | HYPERTENSIVE_CRISIS | I16.9      | CARDIO_CLINICAL_INTL | 0.199746  |
+| 5943      | 48  | 0       | 160.0  | ... | HYPERTENSIVE_CRISIS | I16.9      | CARDIO_CLINICAL_INTL | 0.204373  |
+| 7226      | 56  | 0       | 140.0  | ... | HYPERTENSIVE_CRISIS | I16.9      | CARDIO_CLINICAL_INTL | 0.217388  |
++-----------+-----+---------+--------+-----+---------------------+------------+----------------------+-----------+
+
+================================================================================
+[OK] PIPELINE 01 HOAN TAT XUAT SAC TRONG 0.34 GIAY!
+================================================================================
 \end{lstlisting}
 
 \subsection{Kết Quả Kiểm Thử Đơn Vị (pytest)}
@@ -206,11 +218,11 @@ Thực thi lệnh \texttt{python -m pytest tests/test_lake.py}:
 platform win32 -- Python 3.13.11, pytest-9.1.1, pluggy-1.6.0
 rootdir: C:\Users\PC\Desktop\QTDL TQH
 configfile: pyproject.toml
-collected 2 items
+collected 4 items
 
-tests\test_lake.py ..                                                    [100%]
+tests\test_lake.py ....                                                  [100%]
 
-============================== 2 passed in 4.58s ==============================
+============================== 4 passed in 2.37s ==============================
 \end{lstlisting}
 
 \subsection{Kết Quả Đối Sánh Hiệu Năng Lưu Trữ \& Truy Vấn (Benchmark)}
