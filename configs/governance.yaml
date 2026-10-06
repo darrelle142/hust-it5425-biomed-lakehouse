@@ -1,0 +1,62 @@
+# Data Governance configuration (TV 2 - Clinical Data Governance & Privacy)
+data:
+  delta_path: "data/lakehouse/delta/clinical_events"
+  csv_path: "data/mart/preview_cohort.csv"
+
+quality:
+  expected_rows: 9240
+  minimum_completeness: 0.95
+  required_columns:
+    - person_id
+    - is_male
+    - age
+    - education
+    - current_smoker
+    - cigs_per_day
+    - bp_meds
+    - prevalent_stroke
+    - prevalent_hyp
+    - diabetes
+    - tot_chol
+    - sys_bp
+    - dia_bp
+    - BMI
+    - heart_rate
+    - glucose
+    - ten_year_chd
+    - center_source
+    - bp_stage
+    - icd10_code
+  physiological_ranges:
+    age: {min: 18, max: 100}
+    sys_bp: {min: 0, max: 300, strict_min: true}
+    dia_bp: {min: 0, max: 200, strict_min: true}
+    BMI: {min: 10, max: 80}
+    heart_rate: {min: 20, max: 250}
+    glucose: {min: 20, max: 600}
+    tot_chol: {min: 50, max: 700}
+    cigs_per_day: {min: 0, max: 100}
+
+privacy:
+  direct_identifiers:
+    - person_id
+  baseline_quasi_identifiers:
+    - age
+    - is_male
+    - center_source
+  release_quasi_identifiers:
+    - age_band
+    - is_male
+    - center_source
+  sensitive_attributes:
+    - ten_year_chd
+  age_bins: [0, 39, 49, 59, 200]
+  age_labels: ["<40", "40-49", "50-59", "60+"]
+  minimum_k: 5
+  minimum_l: 2
+
+reports:
+  data_docs_dir: "reports/data_docs"
+  quality_summary: "reports/data_quality_summary.json"
+  privacy_json: "reports/privacy_certificate.json"
+  privacy_html: "reports/privacy_certificate.html"

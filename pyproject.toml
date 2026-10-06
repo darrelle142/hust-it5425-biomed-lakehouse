@@ -21,8 +21,9 @@ dependencies = [
     "pyarrow>=15.0.0",
 
     # Data Governance & Privacy (TV 2)
-    "great-expectations>=0.18.0",
-    "pycanon>=1.0.0",
+    "great-expectations==1.23.2",
+    "pycanon==1.0.1.post2",
+    "pyyaml>=6.0",
 
     # Biomedical EDA & Hypothesis Testing (TV 3)
     "numpy>=1.24.0",

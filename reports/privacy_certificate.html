@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clinical Privacy Assessment Certificate</title>
+  <style>
+    body { font-family: system-ui, Segoe UI, sans-serif; margin: 0; background: #f4f7fb; color: #172033; }
+    main { max-width: 980px; margin: 36px auto; background: white; padding: 36px; border-radius: 14px; box-shadow: 0 8px 32px #193b6a20; }
+    h1, h2 { color: #1768ac; }
+    .badge { display: inline-block; padding: 8px 16px; border-radius: 999px; font-weight: 700; }
+    .pass { background: #d9f7e5; color: #126b39; } .fail { background: #fde1e1; color: #9a2020; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0 24px; }
+    th, td { border: 1px solid #d9e1ec; padding: 10px; text-align: left; } th { background: #edf4fb; }
+    code { overflow-wrap: anywhere; } .notice { border-left: 4px solid #e5a000; padding: 12px 16px; background: #fff8df; }
+  </style>
+</head>
+<body><main>
+  <h1>Clinical Privacy Assessment Certificate</h1>
+  <p class="badge pass">PASS: configured k-anonymity and l-diversity thresholds</p>
+  <p><strong>Generated:</strong> 2026-10-06T10:06:10.806948+00:00</p>
+  <p><strong>Rows assessed:</strong> 9,240</p>
+  <p><strong>Dataset SHA-256:</strong> <code>bf359c55b6f14bc5981383928534d6b683b28a1e8ee92ba45fcf5ce4fbf5da25</code></p>
+
+  <h2>Threat model and transformation</h2>
+  <table><tr><th>Item</th><th>Value</th></tr>
+    <tr><td>Direct identifiers removed</td><td>person_id</td></tr>
+    <tr><td>Baseline QI</td><td>age, is_male, center_source</td></tr>
+    <tr><td>Release-view QI</td><td>age_band, is_male, center_source</td></tr>
+    <tr><td>Age generalization</td><td>&lt;40, 40-49, 50-59, 60+</td></tr>
+  </table>
+
+  <h2>Mathematical results</h2>
+  <table><tr><th>View</th><th>k</th><th>Minimum l</th><th>Decision</th></tr>
+    <tr><td>Baseline exact-age view</td><td>1</td><td>1</td><td>FAIL</td></tr>
+    <tr><td>Generalized release view</td><td>21</td><td>2</td><td>PASS</td></tr>
+  </table>
+  <table><tr><th>Sensitive attribute</th><th>l</th><th>Decision</th></tr><tr><td>ten_year_chd</td><td>2</td><td>PASS</td></tr></table>
+
+  <p class="notice"><strong>Scope notice:</strong> Passing k-anonymity and l-diversity supports a de-identification risk assessment but is not, by itself, legal certification of HIPAA compliance. The assessment is limited to the declared quasi-identifiers and sensitive attributes.</p>
+</main></body></html>

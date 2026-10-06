@@ -84,3 +84,32 @@ pip install -r requirements.txt
 2. Tạo nhánh làm việc cá nhân: `git checkout -b feature/tv<X>-<ten-nhiem-vu>`
 3. Tuyệt đối **không commit file dữ liệu nặng** trong `data/`.
 4. Sau khi hoàn thành và chạy test qua `pytest`, tạo **Pull Request (PR)** để Leader duyệt vào nhánh `main`.
+
+### 4. Chạy phân hệ Data Governance & Privacy (TV 2)
+
+Sau khi Pipeline 01 đã tạo Delta Lake, chạy:
+
+```bash
+python pipelines/02_gov.py
+```
+
+Pipeline 02 ưu tiên `data/lakehouse/delta/clinical_events`, tự fallback sang
+`data/mart/preview_cohort.csv`, sau đó:
+
+1. Chạy 61 quy tắc Great Expectations về schema, tính đầy đủ, miền giá trị và
+   ngưỡng sinh lý học.
+2. Sinh Data Docs tại `reports/data_docs/index.html`.
+3. Đánh giá baseline và view đã tổng quát hóa bằng pyCANON với ngưỡng
+   K-Anonymity `k >= 5` và L-Diversity `l >= 2`.
+4. Sinh chứng chỉ tại `reports/privacy_certificate.html` và bằng chứng JSON tại
+   `reports/privacy_certificate.json`.
+
+Dùng `--strict` nếu cần pipeline trả exit code khác 0 khi một governance gate
+không đạt:
+
+```bash
+python pipelines/02_gov.py --strict
+```
+
+Kết quả k/l là đánh giá rủi ro theo mô hình thuộc tính được khai báo trong
+`configs/governance.yaml`; đây không phải chứng nhận pháp lý HIPAA.

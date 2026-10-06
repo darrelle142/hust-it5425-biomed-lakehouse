@@ -1,0 +1,50 @@
+{
+  "certificate_type": "HIPAA-aligned mathematical privacy assessment",
+  "generated_at_utc": "2026-10-06T10:06:10.806948+00:00",
+  "row_count": 9240,
+  "dataset_sha256": "bf359c55b6f14bc5981383928534d6b683b28a1e8ee92ba45fcf5ce4fbf5da25",
+  "thresholds": {
+    "minimum_k": 5,
+    "minimum_l": 2
+  },
+  "direct_identifiers_removed": [
+    "person_id"
+  ],
+  "age_generalization": [
+    "<40",
+    "40-49",
+    "50-59",
+    "60+"
+  ],
+  "baseline": {
+    "quasi_identifiers": [
+      "age",
+      "is_male",
+      "center_source"
+    ],
+    "k": 1,
+    "l_by_sensitive_attribute": {
+      "ten_year_chd": 1
+    },
+    "minimum_l": 1,
+    "pass": false
+  },
+  "generalized_release_view": {
+    "quasi_identifiers": [
+      "age_band",
+      "is_male",
+      "center_source"
+    ],
+    "sensitive_attributes": [
+      "ten_year_chd"
+    ],
+    "k": 21,
+    "l_by_sensitive_attribute": {
+      "ten_year_chd": 2
+    },
+    "minimum_l": 2,
+    "pass": true
+  },
+  "overall_pass": true,
+  "hipaa_scope_notice": "Passing k-anonymity and l-diversity supports a de-identification risk assessment but is not, by itself, legal certification of HIPAA compliance. The assessment is limited to the declared quasi-identifiers and sensitive attributes."
+}
