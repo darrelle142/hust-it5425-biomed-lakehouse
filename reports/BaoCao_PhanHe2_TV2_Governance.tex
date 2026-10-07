@@ -79,7 +79,7 @@
 \thispagestyle{fancy}
 
 \begin{abstract}
-Tài liệu này tổng kết kết quả triển khai kỹ thuật của \textbf{Phân hệ 2 (TV 2 -- Clinical Data Governance \& Privacy Lead)} trong dự án Bài tập lớn học phần \textit{Quản trị Dữ liệu và Trực quan hóa (IT5425)}. Phân hệ tiếp nhận bảng \texttt{clinical\_events} do Pipeline 01 bàn giao, thiết lập hợp đồng dữ liệu gồm \textbf{61 quy tắc Great Expectations}, kiểm tra đầy đủ lược đồ, tính duy nhất, tính đầy đủ, miền giá trị và các ràng buộc sinh lý học trên \textbf{9.240 hồ sơ}. Kết quả thực nghiệm ghi nhận \textbf{57/61 quy tắc đạt} ($93{,}44\%$); bốn quy tắc không đạt đã phát hiện $99$ trường hợp huyết áp tâm thu thấp hơn huyết áp tâm trương và các ngoại lệ miền giá trị ở huyết áp cùng BMI. Song song, mô hình riêng tư toán học bằng \textbf{pyCANON} cho thấy dữ liệu gốc chỉ đạt $k=1$, $l=1$, trong khi khung dữ liệu phát hành sau khi loại định danh trực tiếp và tổng quát hóa tuổi đạt \textbf{$k=21$, $l=2$}, vượt ngưỡng chính sách $k\geq5$, $l\geq2$. Báo cáo trình bày trung thực cả kết quả đạt và chưa đạt; việc vượt ngưỡng k-anonymity/l-diversity là đánh giá rủi ro theo mô hình thuộc tính đã khai báo, không phải chứng nhận pháp lý HIPAA.
+Tài liệu này tổng kết kết quả triển khai kỹ thuật của \textbf{Phân hệ 2 (TV 2 -- Clinical Data Governance \& Privacy Lead)} trong dự án Bài tập lớn học phần \textit{Quản trị Dữ liệu và Trực quan hóa (IT5425)}. Phân hệ tiếp nhận bảng \texttt{clinical\_events} do Pipeline 01 bàn giao, thiết lập hợp đồng dữ liệu gồm \textbf{61 quy tắc Great Expectations}, kiểm tra đầy đủ lược đồ, tính duy nhất, tính đầy đủ, miền giá trị và các ràng buộc sinh lý học trên \textbf{9.240 hồ sơ}. Sau vòng phản hồi quản trị và làm sạch dữ liệu thượng nguồn, lần đánh giá ngày 07/10/2026 ghi nhận \textbf{61/61 quy tắc đạt} ($100\%$), không còn expectation thất bại. Song song, mô hình riêng tư toán học bằng \textbf{pyCANON} cho thấy dữ liệu gốc chỉ đạt $k=1$, $l=1$, trong khi khung dữ liệu phát hành sau khi loại định danh trực tiếp và tổng quát hóa tuổi đạt \textbf{$k=21$, $l=2$}, vượt ngưỡng chính sách $k\geq5$, $l\geq2$. Do cả Quality Gate và Privacy Gate đều đạt, \textbf{Governance Gate tổng thể PASS}. Việc vượt ngưỡng k-anonymity/l-diversity là đánh giá rủi ro theo mô hình thuộc tính đã khai báo, không phải chứng nhận pháp lý HIPAA.
 \end{abstract}
 
 \vspace{0.3cm}
@@ -187,7 +187,7 @@ Không bật \texttt{--strict}, pipeline vẫn hoàn thành và lưu bằng ch�
 
 \subsection{Kết quả Great Expectations}
 
-Lần đánh giá được lưu trong artifact ngày 03/10/2026 sử dụng nguồn Delta Lake \texttt{clinical\_events}, gồm $9.240$ dòng. Kết quả tổng hợp được trình bày trong Bảng~\ref{tab:quality-summary}.
+Lần đánh giá mới nhất được lưu trong artifact ngày 07/10/2026, sử dụng nguồn Delta Lake \texttt{clinical\_events} gồm $9.240$ dòng. Kết quả tổng hợp được trình bày trong Bảng~\ref{tab:quality-summary}.
 
 \begin{table}[ht]
 \centering
@@ -196,38 +196,38 @@ Lần đánh giá được lưu trong artifact ngày 03/10/2026 sử dụng ngu�
 \textbf{Chỉ tiêu} & \textbf{Kết quả} \\
 \midrule
 Tổng số expectation được đánh giá & 61 \\
-Expectation thành công & 57 \\
-Expectation không thành công & 4 \\
-Tỷ lệ thành công & $93{,}44\%$ \\
-Quyết định Quality Gate & \textbf{FAIL} \\
+Expectation thành công & 61 \\
+Expectation không thành công & 0 \\
+Tỷ lệ thành công & $100{,}00\%$ \\
+Quyết định Quality Gate & \textbf{PASS} \\
 \bottomrule
 \end{tabular}
 \caption{Tổng hợp kết quả hợp đồng chất lượng dữ liệu.}
 \label{tab:quality-summary}
 \end{table}
 
-\begin{vitalbox}[Bốn phát hiện cần xử lý]
-Quality Gate chưa đạt vì hợp đồng được thiết kế theo nguyên tắc ``tất cả quy tắc bắt buộc phải thành công''. Tỷ lệ $93{,}44\%$ không được diễn giải thành dữ liệu đã sạch; bốn expectation thất bại vẫn là finding có hiệu lực.
-\end{vitalbox}
+\begin{successbox}[Quality Gate đạt toàn bộ hợp đồng]
+Toàn bộ 61 expectation đều thành công. Không còn vi phạm miền huyết áp, BMI hoặc quan hệ \texttt{sys\_bp >= dia\_bp} trong dataset sau làm sạch.
+\end{successbox}
 
 \begin{table}[ht]
 \centering
 \small
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r >{\raggedright\arraybackslash}X}
 \toprule
-\textbf{Quy tắc không đạt} & \textbf{Số dòng} & \textbf{Tỷ lệ} & \textbf{Diễn giải} \\
+\textbf{Finding ở vòng đầu} & \textbf{Trước} & \textbf{Sau} & \textbf{Biện pháp làm sạch thượng nguồn} \\
 \midrule
-\texttt{sys\_bp >= dia\_bp} & 99 & $1{,}0714\%$ & Huyết áp tâm thu thấp hơn tâm trương; cần đối soát hoán đổi cột hoặc lỗi nguồn. \\
-Miền \texttt{sys\_bp} $(0,300]$ & 4 & $0{,}0433\%$ & Giá trị tâm thu bằng/nhỏ hơn 0 hoặc vượt 300. \\
-Miền \texttt{dia\_bp} $(0,200]$ & 67 & $0{,}7251\%$ & Giá trị tâm trương bằng/nhỏ hơn 0 hoặc vượt 200. \\
-Miền \texttt{BMI} $[10,80]$ & 1 & $0{,}0108\%$ & Một giá trị BMI nằm ngoài ngưỡng hợp đồng. \\
+\texttt{sys\_bp >= dia\_bp} & 99 & 0 & Chuẩn hóa thang đo và hoán đổi hai cột khi cặp giá trị nằm trong dải hợp lý. \\
+Miền \texttt{sys\_bp} $(0,300]$ & 4 & 0 & Sửa lỗi thang đo; ngoại lệ cực đoan được thay thế bằng giá trị quy ước 125 mmHg. \\
+Miền \texttt{dia\_bp} $(0,200]$ & 67 & 0 & Loại số 0 nhập thừa; ngoại lệ cực đoan được thay thế bằng 80 mmHg. \\
+Miền \texttt{BMI} $[10,80]$ & 1 & 0 & Chuẩn hóa chiều cao nhập sai trước khi tính lại BMI. \\
 \bottomrule
 \end{tabularx}
-\caption{Chi tiết các expectation thất bại.}
+\caption{Đóng vòng phản hồi giữa Governance và làm sạch dữ liệu thượng nguồn.}
 \label{tab:quality-failures}
 \end{table}
 
-Kết quả cho thấy hệ thống quản trị đã thực hiện đúng vai trò phát hiện sai lệch từ dữ liệu thượng nguồn. Đặc biệt, $99$ vi phạm quan hệ huyết áp không được tự động sửa trong Pipeline 02 vì không có đủ bằng chứng để kết luận nguyên nhân. Các bản ghi này cần được truy ngược về nguồn, gắn cờ hoặc quarantine trước khi dùng cho suy luận lâm sàng.
+Kết quả thể hiện một chu trình quản trị khép kín: Pipeline 02 phát hiện sai lệch nhưng không tự ý sửa dữ liệu; các finding được phản hồi về Pipeline 01 để chuẩn hóa chiều cao, sửa thang đo huyết áp, xử lý cột nhập ngược và thay thế ngoại lệ cực đoan. Sau khi tái tạo Delta Lake, Pipeline 02 chạy ở chế độ \texttt{--strict} và đạt $61/61$ quy tắc.
 
 \subsection{Kết quả k-anonymity và l-diversity}
 
@@ -251,15 +251,15 @@ Sau khi loại định danh trực tiếp và tổng quát hóa tuổi, lớp t�
 
 Dataset được gắn dấu vân tay SHA-256:
 \begin{center}
-\small\texttt{bf359c55b6f14bc5981383928534d6b683b28a1e8ee92ba45fcf5ce4fbf5da25}
+\small\texttt{eae5e595b0b0b08af84ceb53e090fa996a8fab4ff80135c86d91ae242be56243}
 \end{center}
 Dấu vân tay cho phép liên kết kết quả đánh giá với đúng phiên bản dữ liệu nhưng không thay thế chữ ký số hay cơ chế kiểm soát truy cập.
 
 \subsection{Quyết định governance tổng thể}
 
-\begin{vitalbox}[Governance Gate tổng thể: FAIL]
-Privacy Gate của view phát hành đạt, nhưng Quality Gate chưa đạt. Theo phép hội logic của Pipeline 02, trạng thái tổng thể là \textbf{FAIL}. Dữ liệu chỉ nên được bàn giao sau khi bốn finding chất lượng được xử lý hoặc có biên bản chấp nhận rủi ro rõ ràng.
-\end{vitalbox}
+\begin{successbox}[Governance Gate tổng thể: PASS]
+Quality Gate đạt $61/61$ expectation và Privacy Gate của view phát hành đạt $k=21$, $l=2$. Theo phép hội logic của Pipeline 02, trạng thái tổng thể là \textbf{PASS}; dataset đủ điều kiện kỹ thuật để bàn giao theo chính sách quản trị đã khai báo.
+\end{successbox}
 
 % ==============================================================================
 \section{Kiểm Thử, Tái Lập \& Bằng Chứng}
@@ -279,7 +279,7 @@ Tệp \texttt{tests/test\_governance.py} định nghĩa bốn trường hợp ki
 Các lệnh tái lập chính:
 
 \begin{lstlisting}[language=bash]
-# Chay pipeline va van sinh bao cao khi co finding
+# Chay pipeline va sinh day du bang chung
 python pipelines/02_gov.py
 
 # Bat governance gate cho CI/CD
@@ -294,34 +294,34 @@ python -m pytest tests/test_governance.py -q
 Kết quả gốc của lần chạy được lưu trong:
 
 \begin{itemize}
-    \item \texttt{reports/data\_quality\_summary.json}: thống kê 61 expectation và bốn finding.
+    \item \texttt{reports/data\_quality\_summary.json}: xác nhận 61/61 expectation thành công và không còn finding.
     \item \texttt{reports/privacy\_certificate.json}: ngưỡng, quasi-identifier, kết quả $k/l$ và SHA-256.
     \item \texttt{reports/data\_docs/}: website kỹ thuật do Great Expectations sinh tự động, dùng để truy vết chi tiết trong quá trình phát triển.
 \end{itemize}
 
-Báo cáo PDF hiện tại là tài liệu bàn giao gọn, đồng bộ định dạng với Phân hệ 1. Data Docs là artifact kỹ thuật có thể tái sinh, không cần xem như tài liệu nộp chính thức.
+Báo cáo PDF hiện tại là tài liệu bàn giao gọn, đồng bộ định dạng với Phân hệ 1. Data Docs HTML và chứng chỉ privacy là sản phẩm nghiệm thu trực quan; các JSON đi kèm cung cấp bằng chứng máy đọc được và khả năng tái lập.
 
 % ==============================================================================
 \section{Giới Hạn, Rủi Ro \& Kế Hoạch Khắc Phục}
 % ==============================================================================
 
 \begin{enumerate}
-    \item \textbf{Chưa xử lý bốn finding chất lượng:} Pipeline quản trị mới phát hiện và báo cáo, chưa tự động sửa. Việc sửa huyết áp hoặc BMI cần quy tắc nghiệp vụ và truy xuất nguồn để tránh làm sai dữ liệu lâm sàng.
+    \item \textbf{Giả định trong quy tắc làm sạch:} các phép đổi thang đo, hoán đổi cột và thay thế ngoại lệ bằng 125/80 mmHg cần được duy trì cùng provenance; PASS của hợp đồng không chứng minh giá trị thay thế là quan sát gốc.
     \item \textbf{K-anonymity không chống mọi tấn công:} $k$ lớn không loại bỏ tấn công dựa trên kiến thức nền; l-diversity cũng chưa đo độ lệch phân phối như t-closeness.
     \item \textbf{Mô hình thuộc tính có phạm vi hữu hạn:} kết quả hiện tại chỉ đúng với ba quasi-identifier và một thuộc tính nhạy cảm đã khai báo. Bổ sung biến địa lý, thời gian hoặc chẩn đoán có thể làm giảm $k$ và $l$.
     \item \textbf{Không phải chứng nhận HIPAA:} kết quả là bằng chứng kỹ thuật hỗ trợ đánh giá rủi ro. Tuân thủ pháp lý còn phụ thuộc kiểm soát truy cập, mục đích sử dụng, hợp đồng, quy trình vận hành và chuyên gia đủ thẩm quyền.
-    \item \textbf{Quản lý artifact:} thư mục Data Docs chứa nhiều tài nguyên tĩnh. Trong quy trình bàn giao nên giữ PDF/TeX và JSON bằng chứng; website chi tiết có thể sinh lại từ pipeline hoặc lưu trong CI artifact.
+    \item \textbf{Quản lý artifact:} Data Docs chứa nhiều tài nguyên tĩnh nhưng là sản phẩm nghiệm thu cần mở trực tiếp bằng trình duyệt. Mỗi lần tái tạo dataset phải sinh lại Data Docs, JSON và certificate tương ứng.
 \end{enumerate}
 
-Kế hoạch khắc phục ưu tiên là: (1) truy xuất $99$ bản ghi vi phạm quan hệ huyết áp; (2) phân loại 72 ngoại lệ miền giá trị, có xét khả năng trùng giữa các nhóm; (3) quyết định sửa, loại hoặc quarantine theo provenance; (4) chạy lại Pipeline 01 và Pipeline 02; (5) chỉ mở quality gate khi $61/61$ expectation đạt hoặc ngoại lệ được phê duyệt chính thức.
+Kế hoạch duy trì là: (1) lưu vết số bản ghi bị biến đổi theo từng quy tắc làm sạch; (2) theo dõi drift của phân phối huyết áp và BMI; (3) chạy Pipeline 02 với \texttt{--strict} trong CI/CD; (4) cập nhật fingerprint và toàn bộ artifact sau mỗi phiên bản dữ liệu; (5) đánh giá lại tập quasi-identifier khi bổ sung thuộc tính mới.
 
 % ==============================================================================
 \section{Bàn Giao Cho Các Phân Hệ Hạ Nguồn}
 % ==============================================================================
 
 \begin{itemize}
-    \item \textbf{TV 3 -- EDA:} sử dụng finding như một phần của phân tích missingness và outlier; không âm thầm loại bản ghi trước khi báo cáo.
-    \item \textbf{TV 4/TV 5 -- Mô hình hóa:} huấn luyện trên dataset đã qua quyết định xử lý ngoại lệ; ghi rõ cohort và fingerprint để bảo đảm khả năng tái lập.
+    \item \textbf{TV 3 -- EDA:} sử dụng dataset đã qua Quality Gate, đồng thời phân biệt giá trị gốc và giá trị đã làm sạch khi diễn giải phân phối huyết áp/BMI.
+    \item \textbf{TV 4/TV 5 -- Mô hình hóa:} huấn luyện trên dataset đã đạt governance gate; ghi rõ cohort, quy tắc làm sạch và fingerprint để bảo đảm khả năng tái lập.
     \item \textbf{TV 6 -- Dashboard:} chỉ hiển thị dữ liệu release view, không phát hành \texttt{person\_id} hoặc tuổi chính xác nếu chưa có kiểm soát truy cập phù hợp.
     \item \textbf{Tích hợp CI/CD:} dùng \texttt{python pipelines/02\_gov.py --strict} để ngăn bản phát hành mới khi quality/privacy gate thất bại.
 \end{itemize}
@@ -330,6 +330,6 @@ Kế hoạch khắc phục ưu tiên là: (1) truy xuất $99$ bản ghi vi ph�
 \section{Kết Luận}
 % ==============================================================================
 
-Phân hệ 2 đã xây dựng được một lớp quản trị có thể cấu hình và tái lập trên Clinical Data Lakehouse: 61 quy tắc chất lượng, bằng chứng chi tiết cho từng finding, đo k-anonymity/l-diversity trước và sau biến đổi, cùng dấu vân tay dataset. Kết quả quan trọng nhất không phải tỷ lệ $93{,}44\%$, mà là việc phát hiện cụ thể bốn nhóm vi phạm trước khi dữ liệu được sử dụng ở hạ nguồn. View phát hành đã đạt $k=21$, $l=2$, nhưng governance gate tổng thể vẫn chưa đạt do quality gate thất bại. Báo cáo vì vậy kết luận có điều kiện và đề xuất xử lý provenance của các ngoại lệ trước khi bàn giao chính thức.
+Phân hệ 2 đã xây dựng được một lớp quản trị có thể cấu hình và tái lập trên Clinical Data Lakehouse: 61 quy tắc chất lượng, phản hồi finding về tầng tích hợp, đo k-anonymity/l-diversity trước và sau biến đổi, cùng dấu vân tay dataset. Vòng đánh giá mới nhất đạt $61/61$ expectation; view phát hành đạt $k=21$, $l=2$; do đó governance gate tổng thể \textbf{PASS}. Kết quả chứng minh chu trình phát hiện--khắc phục--tái kiểm định đã hoạt động, đồng thời vẫn yêu cầu lưu provenance cho các giá trị làm sạch và không diễn giải privacy gate như chứng nhận pháp lý HIPAA.
 
 \end{document}

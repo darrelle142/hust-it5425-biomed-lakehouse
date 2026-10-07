@@ -1,50 +1,13 @@
 {
-  "success": false,
+  "success": true,
   "evaluated_expectations": 61,
-  "successful_expectations": 57,
-  "unsuccessful_expectations": 4,
-  "success_percent": 93.44,
+  "successful_expectations": 61,
+  "unsuccessful_expectations": 0,
+  "success_percent": 100.0,
   "source_kind": "delta",
   "source_path": "D:\\Visualize\\hust-it5425-biomed-lakehouse\\data\\lakehouse\\delta\\clinical_events",
   "row_count": 9240,
-  "failed_expectations": [
-    {
-      "expectation_type": "expect_column_pair_values_a_to_be_greater_than_b",
-      "column": null,
-      "column_A": "sys_bp",
-      "column_B": "dia_bp",
-      "unexpected_count": 99,
-      "unexpected_percent": 1.0714,
-      "element_count": 9240
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_between",
-      "column": "sys_bp",
-      "column_A": null,
-      "column_B": null,
-      "unexpected_count": 4,
-      "unexpected_percent": 0.0433,
-      "element_count": 9240
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_between",
-      "column": "dia_bp",
-      "column_A": null,
-      "column_B": null,
-      "unexpected_count": 67,
-      "unexpected_percent": 0.7251,
-      "element_count": 9240
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_between",
-      "column": "BMI",
-      "column_A": null,
-      "column_B": null,
-      "unexpected_count": 1,
-      "unexpected_percent": 0.0108,
-      "element_count": 9240
-    }
-  ],
+  "failed_expectations": [],
   "data_docs_index": "D:\\Visualize\\hust-it5425-biomed-lakehouse\\reports\\data_docs\\index.html",
   "note": "A failed contract is a valid audit finding; inspect Data Docs for details."
 }
