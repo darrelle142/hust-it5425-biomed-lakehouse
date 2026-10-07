@@ -117,13 +117,53 @@ class ClinicalDataIntegrationEngine:
         # 2. Chuyển đổi giới tính (1: Nữ -> 0, 2: Nam -> 1)
         is_male = pl.when(pl.col("gender") == 2).then(1).otherwise(0).cast(pl.Int8)
 
-        # 3. Tính toán chỉ số khối cơ thể BMI từ chiều cao và cân nặng
-        height_m = pl.col("height") / 100.0
+        # 3. Tính toán chỉ số khối cơ thể BMI từ chiều cao và cân nặng (chuẩn hóa lỗi gõ chiều cao)
+        height_clean = (
+            pl.when(pl.col("height") == 76).then(176)
+            .when(pl.col("height") < 100).then(pl.col("height") + 100)
+            .otherwise(pl.col("height"))
+        )
+        height_m = height_clean / 100.0
         bmi = (pl.col("weight") / (height_m * height_m)).round(2).cast(pl.Float32)
 
-        # 4. Ánh xạ huyết áp
-        sys_bp = pl.col("ap_hi").cast(pl.Float32)
-        dia_bp = pl.col("ap_lo").cast(pl.Float32)
+        # 4. Ánh xạ và làm sạch dữ liệu huyết áp theo chuẩn Clinical Data Cleansing (Chương 4 & 5):
+        raw_sys = pl.col("ap_hi").cast(pl.Float32)
+        raw_dia = pl.col("ap_lo").cast(pl.Float32)
+
+        # 4.1. Khắc phục lỗi sai thang đo cmHg -> mmHg và lỗi gõ thừa số 0:
+        sys_scaled = (
+            pl.when((raw_sys >= 10.0) & (raw_sys <= 25.0)).then(raw_sys * 10.0)
+            .when((raw_sys >= 1000.0) & (raw_sys <= 2500.0)).then(raw_sys / 10.0)
+            .otherwise(raw_sys)
+        )
+        dia_scaled = (
+            pl.when((raw_dia >= 500.0) & (raw_dia <= 1500.0)).then(raw_dia / 10.0)
+            .when((raw_dia >= 5.0) & (raw_dia <= 20.0)).then(raw_dia * 10.0)
+            .otherwise(raw_dia)
+        )
+
+        # 4.2. Khắc phục lỗi nhập ngược cột (Hoán đổi nếu sys < dia và cả hai trong dải sinh lý 40 - 250):
+        sys_swapped = pl.when(
+            (sys_scaled < dia_scaled) & (sys_scaled >= 40.0) & (dia_scaled <= 250.0)
+        ).then(dia_scaled).otherwise(sys_scaled)
+
+        dia_swapped = pl.when(
+            (sys_scaled < dia_scaled) & (sys_scaled >= 40.0) & (dia_scaled <= 250.0)
+        ).then(sys_scaled).otherwise(dia_scaled)
+
+        # 4.3. Xử lý các ngoại lệ cực đoan (Imputation theo trung vị lâm sàng an toàn):
+        sys_imputed = (
+            pl.when((sys_swapped <= 0.0) | (sys_swapped > 300.0)).then(125.0)
+            .otherwise(sys_swapped)
+        )
+        dia_imputed = (
+            pl.when((dia_swapped <= 0.0) | (dia_swapped > 200.0)).then(80.0)
+            .otherwise(dia_swapped)
+        )
+
+        # 4.4. Đảm bảo ràng buộc sinh lý học tuyệt đối sys_bp >= dia_bp:
+        sys_bp = pl.when(sys_imputed < dia_imputed).then(dia_imputed + 10.0).otherwise(sys_imputed)
+        dia_bp = dia_imputed
 
         # 5. Ánh xạ cholesterol cấp bậc (1: Normal ~185, 2: Borderline ~225, 3: High ~265)
         tot_chol = (
@@ -140,6 +180,7 @@ class ClinicalDataIntegrationEngine:
         ).cast(pl.Float32)
 
         diabetes = pl.when(pl.col("gluc") == 3).then(1).otherwise(0).cast(pl.Int8)
+        prevalent_hyp = pl.when((sys_bp >= 140.0) | (dia_bp >= 90.0)).then(1).otherwise(0).cast(pl.Int8)
 
         df_wrapped = df.select([
             is_male.alias("is_male"),
@@ -149,7 +190,7 @@ class ClinicalDataIntegrationEngine:
             (pl.when(pl.col("smoke") == 1).then(15).otherwise(0)).cast(pl.Int16).alias("cigs_per_day"),
             pl.lit(0).cast(pl.Int8).alias("bp_meds"),
             pl.lit(0).cast(pl.Int8).alias("prevalent_stroke"),
-            (pl.when(sys_bp >= 140.0).then(1).otherwise(0)).cast(pl.Int8).alias("prevalent_hyp"),
+            prevalent_hyp.alias("prevalent_hyp"),
             diabetes.alias("diabetes"),
             tot_chol.alias("tot_chol"),
             sys_bp.alias("sys_bp"),
@@ -161,7 +202,7 @@ class ClinicalDataIntegrationEngine:
             pl.lit("CARDIO_CLINICAL_INTL").alias("center_source")
         ])
 
-        print(f"[+] [Wrapper - Cardio Study] Hòa giải thành công {df_wrapped.height:,} bệnh nhân.")
+        print(f"[+] [Wrapper - Cardio Study] Hòa giải & chuẩn hóa lâm sàng thành công {df_wrapped.height:,} bệnh nhân.")
         return df_wrapped
 
     def integrate_multi_center_cohorts(self, framingham_file: str, cardio_file: str) -> pl.DataFrame:

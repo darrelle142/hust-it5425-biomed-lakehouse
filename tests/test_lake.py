@@ -174,3 +174,67 @@ def test_multi_center_and_aha_enrichment(tmp_path):
     assert "dim_aha_guidelines" in star_tables
     assert star_tables["dim_patient"].count_rows() == 4
     assert star_tables["dim_aha_guidelines"].count_rows() == 5
+
+
+def test_clinical_cleansing_and_governance_rules(tmp_path):
+    """
+    Kiểm thử cơ chế Chuẩn hóa & Làm sạch dữ liệu lâm sàng (Clinical Data Cleansing):
+    Đảm bảo 100% các lỗi dị thường phát hiện bởi TV 2 (Governance) được giải quyết:
+    1. Lỗi thang đo cmHg -> mmHg (ap_hi = 14 -> sys_bp = 140)
+    2. Lỗi thừa số 0 ở tâm trương (ap_lo = 1000 -> dia_bp = 100)
+    3. Lỗi hoán đổi cột (ap_hi = 80, ap_lo = 120 -> sys_bp = 120, dia_bp = 80)
+    4. Lỗi chiều cao dị thường (height = 76cm -> BMI trong ngưỡng [10, 80])
+    5. Đảm bảo ràng buộc sys_bp >= dia_bp và miền giá trị sinh lý học
+    """
+    engine = ClinicalDataIntegrationEngine()
+    test_cardio_file = str(tmp_path / "anomalous_cardio.csv")
+
+    # Giả lập các ca dị thường điển hình từ báo cáo TV 2
+    pl.DataFrame({
+        "id": [1, 2, 3, 4, 5],
+        "age": [18000, 19000, 20000, 21000, 22000],
+        "gender": [2, 1, 2, 1, 1],
+        "height": [168, 156, 175, 76, 165],     # Ca 4 có chiều cao dị thường 76cm
+        "weight": [65.0, 70.0, 80.0, 55.0, 75.0],
+        "ap_hi": [14.0, 160.0, 80.0, 120.0, -100.0],  # Ca 1: cmHg (14), Ca 3: đảo ngược (80), Ca 5: âm (-100)
+        "ap_lo": [80.0, 1000.0, 120.0, 80.0, 80.0],  # Ca 2: thừa số 0 (1000)
+        "cholesterol": [1, 2, 3, 1, 2],
+        "gluc": [1, 1, 2, 1, 1],
+        "smoke": [0, 0, 1, 0, 0],
+        "alco": [0, 0, 0, 0, 0],
+        "active": [1, 1, 1, 1, 1],
+        "cardio": [0, 1, 0, 0, 1]
+    }).write_csv(test_cardio_file, separator=";")
+
+    df_cleaned = engine.wrap_cardio_study(test_cardio_file)
+
+    # Nghiệm chứng 1: Ca 1 sửa cmHg -> mmHg
+    row1 = df_cleaned.row(0, named=True)
+    assert row1["sys_bp"] == 140.0
+    assert row1["dia_bp"] == 80.0
+
+    # Nghiệm chứng 2: Ca 2 sửa thừa số 0 (1000 -> 100)
+    row2 = df_cleaned.row(1, named=True)
+    assert row2["sys_bp"] == 160.0
+    assert row2["dia_bp"] == 100.0
+
+    # Nghiệm chứng 3: Ca 3 đảo ngược cột hợp lý (80/120 -> 120/80)
+    row3 = df_cleaned.row(2, named=True)
+    assert row3["sys_bp"] == 120.0
+    assert row3["dia_bp"] == 80.0
+
+    # Nghiệm chứng 4: Ca 4 chuẩn hóa chiều cao (76 -> 176), BMI hợp lệ
+    row4 = df_cleaned.row(3, named=True)
+    assert 10.0 <= row4["BMI"] <= 80.0
+
+    # Nghiệm chứng 5: Ca 5 ngoại lệ cực đoan được impute an toàn
+    row5 = df_cleaned.row(4, named=True)
+    assert 0.0 < row5["sys_bp"] <= 300.0
+    assert 0.0 < row5["dia_bp"] <= 200.0
+
+    # Nghiệm chứng tổng thể: Không có bất kỳ vi phạm Great Expectations nào
+    assert df_cleaned.filter(pl.col("sys_bp") < pl.col("dia_bp")).height == 0
+    assert df_cleaned.filter((pl.col("sys_bp") <= 0) | (pl.col("sys_bp") > 300)).height == 0
+    assert df_cleaned.filter((pl.col("dia_bp") <= 0) | (pl.col("dia_bp") > 200)).height == 0
+    assert df_cleaned.filter((pl.col("BMI") < 10) | (pl.col("BMI") > 80)).height == 0
+

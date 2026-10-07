@@ -4,8 +4,15 @@ Xuất bản tệp CSV xem trước để người dùng có thể nhấp đúp 
 """
 
 import os
+import sys
 import lancedb
 import polars as pl
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_URI = os.path.join(PROJECT_ROOT, "data", "mart", "clin.lance")
@@ -14,7 +21,7 @@ PREVIEW_CSV = os.path.join(PROJECT_ROOT, "data", "mart", "preview_cohort.csv")
 
 def inspect_lancedb():
     print("=" * 70)
-    print("🔍 CÔNG CỤ XEM DỮ LIỆU LANCEDB (CLINICAL DATA MART)")
+    print("[*] CONG CU XEM DU LIEU LANCEDB (CLINICAL DATA MART)")
     print("=" * 70)
 
     if not os.path.exists(DB_URI):
