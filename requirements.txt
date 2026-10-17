@@ -15,6 +15,7 @@ pandas>=2.1.0
 scipy>=1.11.0
 seaborn>=0.13.0
 matplotlib>=3.8.0
+tableone==0.9.6
 
 # Statistical Modelling (TV 4)
 statsmodels>=0.14.0
