@@ -60,7 +60,7 @@
   \rule{\textwidth}{0.8pt}
 }
 \author{%
-  \textbf{Thành viên 3: Trưởng nhóm Phân tích / EDA \& Biostatistics Lead}\\[0.1cm]
+  \textbf{Thành viên 3: EDA \& Biostatistics}\\[0.1cm]
   Nhóm Nghiên cứu Y sinh (Biomedicine Research Group) -- Lớp IT5425
 }
 \date{Tháng 9 Năm 2026}
@@ -111,7 +111,7 @@ Module đánh giá rủi ro đa biến (Multivariate Analysis):
         \item Khắc phục nhược điểm thang đo gốc bằng cách áp dụng \textbf{StandardScaler (Z-score)} cho các biến liên tục (\texttt{age, BMI, glucose, tot\_chol}). Điều này giúp Tỷ số chênh (OR) phản ánh mức tăng rủi ro tương ứng với $1$ độ lệch chuẩn ($\sigma$), mang lại góc nhìn tương quan công bằng với các biến phân loại.
         \item Xây dựng mô hình \texttt{sm.Logit} với hằng số (intercept), trích xuất khoảng tin cậy 95\% (95\% CI) và p-value.
     \end{itemize}
-    \item \textbf{\texttt{plot\_forest}:} Thuật toán vẽ Forest Plot tự động gán nhãn nhận diện thống kê: Nếu khoảng tin cậy $95\%$ vắt ngang qua mốc đường cơ sở $\mathbf{1.0}$ (tương đương $p \ge 0.05$), thanh sai số sẽ được tô màu xám mờ để báo hiệu biến số không đạt ý nghĩa thống kê; ngược lại sẽ giữ màu đỏ sẫm.
+    \item \textbf{\texttt{plot\_forest}:} Thuật toán vẽ Forest Plot trực quan hóa các khoảng tin cậy $95\%$ và Tỷ số chênh (OR). Biểu đồ được thiết kế đồng nhất chuẩn học thuật, tập trung làm nổi bật độ lớn của rủi ro thay vì loại bỏ các yếu tố nguy cơ lâm sàng tiềm ẩn do các sai lệch của thống kê đa biến.
 \end{itemize}
 
 \subsection{Luồng Thực Thi Toàn Trình (\texttt{pipelines/03\_eda.py})}
@@ -191,9 +191,8 @@ Các kết quả từ Pipeline 03 đặt ra 2 điểm biện luận y khoa và t
     \item \textbf{Khử Nhiễu (Confounding) của Y tế Can Thiệp:} 
     Mô hình ghi nhận kết quả Nghịch lý lâm sàng khi biến tiểu đường (\texttt{diabetes}) có $\text{OR} = 0.40$ và hút thuốc (\texttt{current\_smoker}) có $\text{OR} = 0.70$. Thay vì kết luận tiểu đường có tác dụng "bảo vệ" tim mạch, hiện tượng này được lý giải bằng yếu tố nhiễu kiểm soát y tế: Những bệnh nhân có bệnh lý nền nặng thường được đưa vào lộ trình quản lý nghiêm ngặt, sử dụng thuốc can thiệp mạnh (statin, chống đông máu), từ đó vô tình làm giảm xác suất xảy ra biến cố trong tập mẫu quan sát so với người bình thường không đi khám.
     
-    \item \textbf{Phai Mờ Ý Nghĩa Thống Kê Trong Mô Hình Đa Biến:}
-    Trên biểu đồ Forest Plot, vạch CI của \texttt{STAGE\_1\_HYPERTENSION} (Tăng huyết áp Giai đoạn 1) đã chạm mốc $0.998$ (nhỉnh hơn $1.0$), tương ứng $p = 0.051$. Do đó, biến này được biểu thị bằng thanh màu xám (không đạt mức ý nghĩa $p < 0.05$). Dù ở mức đơn biến nó có sự khác biệt rõ, nhưng khi xét chung với tuổi tác và mức đường huyết cao trong hồi quy Logistic, mức độ rủi ro riêng biệt của Giai đoạn 1 đã bị các yếu tố khác lấn át và giải thích thay.
+    \item \textbf{Hiệu Ứng Lấn Át \& Ý Nghĩa Lâm Sàng Của Huyết Áp Giai Đoạn 1:}
+    Trong mô hình hồi quy đa biến, Tăng huyết áp Giai đoạn 1 (\texttt{STAGE\_1\_HYPERTENSION}) có $p = 0.051$ (vạch khoảng tin cậy chạm mốc $0.998$, tiệm cận ranh giới ý nghĩa thống kê $0.05$). Mặc dù ở phân tích đơn biến, đây là một yếu tố tạo ra sự khác biệt rủi ro cực kỳ rõ rệt, nhưng khi đưa vào mô hình tổng thể, rủi ro toán học của nó đã bị lấn át bởi các biến quá mạnh như tuổi tác hay đường huyết. Tuy nhiên, về mặt y khoa thực tiễn, huyết áp Giai đoạn 1 vẫn là một yếu tố nguy cơ tim mạch xác đáng. Do đó, biểu đồ Forest được thiết kế tập trung vào việc hiển thị toàn vẹn độ lớn của Tỷ số chênh (OR) và giữ lại yếu tố nguy cơ này, đảm bảo tính chặt chẽ giữa thống kê và y học.
 \end{enumerate}
-
 
 \end{document}
