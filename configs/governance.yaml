@@ -37,6 +37,12 @@ quality:
     tot_chol: {min: 50, max: 700}
     cigs_per_day: {min: 0, max: 100}
 
+# Star Schema mart from Pipeline 01 (fact_clinical_cohort + 3 dimensions).
+# Skipped automatically when the LanceDB mart has not been built yet.
+star_schema:
+  lancedb_uri: "data/mart/clin.lance"
+  phenotype_vector_dim: 8
+
 privacy:
   direct_identifiers:
     - person_id

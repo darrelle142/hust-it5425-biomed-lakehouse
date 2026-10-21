@@ -16,6 +16,7 @@ from biomed_lake.governance.anon import run_privacy_assessment
 from biomed_lake.governance.gx import (
     load_clinical_data,
     load_governance_config,
+    load_star_schema,
     run_quality_assessment,
 )
 
@@ -62,22 +63,33 @@ def run_pipeline(config_path: str, source: str = "auto", strict: bool = False) -
     dataset = load_clinical_data(PROJECT_ROOT, config, preferred_source=source)
     print(f"[INPUT] {dataset.source_kind.upper()}: {dataset.source_path}")
     print(f"[INPUT] {len(dataset.dataframe):,} rows x {len(dataset.dataframe.columns)} columns")
+    star_schema = load_star_schema(PROJECT_ROOT, config)
+    if star_schema is None:
+        print("[INPUT] Star Schema mart not found; skipping referential-integrity contracts.")
+    else:
+        print(f"[INPUT] STAR SCHEMA: {star_schema.source_path}")
 
     print("\n[1/2] Running Great Expectations biomedical data contract...")
-    quality = run_quality_assessment(dataset, config, PROJECT_ROOT)
+    quality = run_quality_assessment(dataset, config, PROJECT_ROOT, star_schema)
     quality_status = "PASS" if quality.success else "FAIL"
     print(
         f"[{quality_status}] Quality: {quality.successful_expectations}/"
         f"{quality.evaluated_expectations} expectations passed "
         f"({quality.success_percent:.2f}%)."
     )
+    for suite_name, stats in quality.suite_statistics.items():
+        print(
+            f"  * {suite_name}: {stats['successful_expectations']}/"
+            f"{stats['evaluated_expectations']} "
+            f"{'PASS' if stats['success'] else 'FAIL'}"
+        )
     print(f"[REPORT] Data Docs: {quality.data_docs_index}")
     for finding in quality.failed_expectations:
         columns = finding["column"] or (
             f"{finding['column_A']} >= {finding['column_B']}"
         )
         print(
-            f"  - {finding['expectation_type']} [{columns}]: "
+            f"  - {finding['suite']}: {finding['expectation_type']} [{columns}]: "
             f"{finding['unexpected_count']} unexpected values "
             f"({finding['unexpected_percent']:.3f}%)"
         )

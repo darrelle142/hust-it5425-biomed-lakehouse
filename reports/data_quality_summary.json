@@ -1,13 +1,51 @@
 {
   "success": true,
-  "evaluated_expectations": 61,
-  "successful_expectations": 61,
+  "evaluated_expectations": 95,
+  "successful_expectations": 95,
   "unsuccessful_expectations": 0,
   "success_percent": 100.0,
   "source_kind": "delta",
-  "source_path": "C:\\Users\\PC\\Desktop\\QTDL TQH\\data\\lakehouse\\delta\\clinical_events",
+  "source_path": "D:\\Visualize\\hust-it5425-biomed-lakehouse\\data\\lakehouse\\delta\\clinical_events",
   "row_count": 9240,
+  "star_schema_path": "D:\\Visualize\\hust-it5425-biomed-lakehouse\\data\\mart\\clin.lance",
+  "suites": {
+    "biomedical_data_contract": {
+      "success": true,
+      "evaluated_expectations": 61,
+      "successful_expectations": 61,
+      "unsuccessful_expectations": 0,
+      "success_percent": 100.0
+    },
+    "star_schema_fact_clinical_cohort": {
+      "success": true,
+      "evaluated_expectations": 17,
+      "successful_expectations": 17,
+      "unsuccessful_expectations": 0,
+      "success_percent": 100.0
+    },
+    "star_schema_dim_patient": {
+      "success": true,
+      "evaluated_expectations": 3,
+      "successful_expectations": 3,
+      "unsuccessful_expectations": 0,
+      "success_percent": 100.0
+    },
+    "star_schema_dim_clinical_metrics": {
+      "success": true,
+      "evaluated_expectations": 5,
+      "successful_expectations": 5,
+      "unsuccessful_expectations": 0,
+      "success_percent": 100.0
+    },
+    "star_schema_dim_aha_guidelines": {
+      "success": true,
+      "evaluated_expectations": 9,
+      "successful_expectations": 9,
+      "unsuccessful_expectations": 0,
+      "success_percent": 100.0
+    }
+  },
   "failed_expectations": [],
-  "data_docs_index": "C:\\Users\\PC\\Desktop\\QTDL TQH\\reports\\data_docs\\index.html",
+  "data_docs_index": "D:\\Visualize\\hust-it5425-biomed-lakehouse\\reports\\data_docs\\index.html",
   "note": "A failed contract is a valid audit finding; inspect Data Docs for details."
 }

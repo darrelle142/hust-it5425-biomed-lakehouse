@@ -13,7 +13,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from biomed_lake.governance.anon import run_privacy_assessment
-from biomed_lake.governance.gx import ClinicalDataset, run_quality_assessment
+from biomed_lake.governance.gx import (
+    BP_STAGES,
+    ClinicalDataset,
+    StarSchemaTables,
+    run_quality_assessment,
+)
 
 
 def _sample_dataframe(rows: int = 12) -> pd.DataFrame:
@@ -63,6 +68,7 @@ def _config(tmp_path: Path, rows: int) -> dict:
                 "cigs_per_day": {"min": 0, "max": 100},
             },
         },
+        "star_schema": {"lancedb_uri": "unused", "phenotype_vector_dim": 8},
         "privacy": {
             "direct_identifiers": ["person_id"],
             "baseline_quasi_identifiers": ["age", "is_male", "center_source"],
@@ -108,6 +114,96 @@ def test_quality_contract_rejects_physiological_outlier(
     )
     assert not assessment.success
     assert assessment.unsuccessful_expectations >= 1
+
+
+def _sample_star_schema(dataframe: pd.DataFrame, tmp_path: Path) -> StarSchemaTables:
+    fact = pd.DataFrame(
+        {
+            "event_id": range(1, len(dataframe) + 1),
+            "person_id": dataframe["person_id"],
+            "metric_id": dataframe["person_id"],
+            "guideline_id": 3,
+            "ten_year_chd": dataframe["ten_year_chd"],
+            "phenotype_vector": [[0.5] * 8 for _ in range(len(dataframe))],
+        }
+    )
+    metrics = dataframe[["person_id", "tot_chol", "sys_bp", "dia_bp"]].copy()
+    metrics.insert(0, "metric_id", dataframe["person_id"])
+    guidelines = pd.DataFrame(
+        {
+            "guideline_id": range(1, len(BP_STAGES) + 1),
+            "bp_stage": BP_STAGES,
+            "min_sys_bp": [0.0, 120.0, 130.0, 140.0, 180.0],
+            "max_sys_bp": [119.9, 129.9, 139.9, 179.9, 300.0],
+            "min_dia_bp": [0.0, 0.0, 80.0, 90.0, 120.0],
+            "max_dia_bp": [79.9, 79.9, 89.9, 119.9, 200.0],
+            "icd10_code": ["R03.0", "R03.0", "I10", "I10.9", "I16.9"],
+        }
+    )
+    return StarSchemaTables(
+        fact_clinical_cohort=fact,
+        dim_patient=dataframe[["person_id", "age", "is_male", "center_source"]].copy(),
+        dim_clinical_metrics=metrics,
+        dim_aha_guidelines=guidelines,
+        source_path=tmp_path / "clin.lance",
+    )
+
+
+def test_star_schema_contract_passes(tmp_path: Path) -> None:
+    dataframe = _sample_dataframe()
+    config = _config(tmp_path, len(dataframe))
+    assessment = run_quality_assessment(
+        ClinicalDataset(dataframe, "test", tmp_path / "sample.csv"),
+        config,
+        PROJECT_ROOT,
+        _sample_star_schema(dataframe, tmp_path),
+    )
+    assert assessment.success
+    assert len(assessment.suite_statistics) == 5
+    assert all(stats["success"] for stats in assessment.suite_statistics.values())
+
+
+@pytest.mark.parametrize(
+    ("table", "column", "invalid_value", "failed_suite"),
+    [
+        ("fact_clinical_cohort", "person_id", 999, "star_schema_fact_clinical_cohort"),
+        ("fact_clinical_cohort", "metric_id", 999, "star_schema_fact_clinical_cohort"),
+        ("fact_clinical_cohort", "guideline_id", 6, "star_schema_fact_clinical_cohort"),
+        ("fact_clinical_cohort", "event_id", 2, "star_schema_fact_clinical_cohort"),
+        ("dim_patient", "person_id", 2, "star_schema_dim_patient"),
+        ("dim_clinical_metrics", "person_id", 999, "star_schema_dim_clinical_metrics"),
+    ],
+)
+def test_star_schema_contract_rejects_broken_keys(
+    tmp_path: Path, table: str, column: str, invalid_value: int, failed_suite: str
+) -> None:
+    dataframe = _sample_dataframe()
+    config = _config(tmp_path, len(dataframe))
+    star_schema = _sample_star_schema(dataframe, tmp_path)
+    getattr(star_schema, table).loc[0, column] = invalid_value
+    assessment = run_quality_assessment(
+        ClinicalDataset(dataframe, "test", tmp_path / "sample.csv"),
+        config,
+        PROJECT_ROOT,
+        star_schema,
+    )
+    assert not assessment.success
+    assert not assessment.suite_statistics[failed_suite]["success"]
+    assert any(finding["suite"] == failed_suite for finding in assessment.failed_expectations)
+
+
+def test_star_schema_contract_rejects_wrong_vector_dimension(tmp_path: Path) -> None:
+    dataframe = _sample_dataframe()
+    config = _config(tmp_path, len(dataframe))
+    star_schema = _sample_star_schema(dataframe, tmp_path)
+    star_schema.fact_clinical_cohort.at[0, "phenotype_vector"] = [0.5] * 7
+    assessment = run_quality_assessment(
+        ClinicalDataset(dataframe, "test", tmp_path / "sample.csv"),
+        config,
+        PROJECT_ROOT,
+        star_schema,
+    )
+    assert not assessment.suite_statistics["star_schema_fact_clinical_cohort"]["success"]
 
 
 def test_privacy_generalization_meets_k_and_l(tmp_path: Path) -> None:
