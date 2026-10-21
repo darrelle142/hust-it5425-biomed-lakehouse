@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit Tests cho Phân hệ 1: Clinical Data Lakehouse & LanceDB
 Phụ trách: TV 1 (Data Lead)
 """
@@ -95,6 +95,24 @@ def test_data_integration_and_star_schema(tmp_path, sample_csv):
     assert star_tables["dim_patient"].count_rows() == 3
     assert star_tables["dim_clinical_metrics"].count_rows() == 3
     assert star_tables["fact_clinical_cohort"].count_rows() == 3
+
+    # Kiem thu tinh tinh gon cua Fact (khong trung lap cot cua Dim)
+    fact_cols = star_tables["fact_clinical_cohort"].schema.names
+    assert "event_id" in fact_cols
+    assert "person_id" in fact_cols
+    assert "metric_id" in fact_cols
+    assert "ten_year_chd" in fact_cols
+    assert "phenotype_vector" in fact_cols
+    assert "age" not in fact_cols
+    assert "tot_chol" not in fact_cols
+    assert "sys_bp" not in fact_cols
+
+    # Kiem thu Star JOIN sinh ma tran phan tich
+    analytical_df = lance_mgr.get_analytical_cohort().collect()
+    assert analytical_df.height == 3
+    assert "age" in analytical_df.columns
+    assert "tot_chol" in analytical_df.columns
+    assert "ten_year_chd" in analytical_df.columns
 
 
 def test_multi_center_and_aha_enrichment(tmp_path):
