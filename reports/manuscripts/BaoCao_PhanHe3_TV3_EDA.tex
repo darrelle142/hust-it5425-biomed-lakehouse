@@ -1,13 +1,18 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[11pt, a4paper]{article}
 
-\usepackage[utf8]{inputenc}
-\usepackage[vietnamese,english]{babel}
-\usepackage[T5,T1]{fontenc}
+% --- REQUIRED SYSTEM PREAMBLE ---
+\usepackage[a4paper, margin=2.2cm, top=2.5cm, bottom=2.5cm]{geometry}
+\usepackage{fontspec}
+\usepackage[english, vietnamese, bidi=basic, provide=*]{babel}
+\babelprovide[import, main, onchar=ids fonts]{vietnamese}
+\babelfont{rm}{Noto Sans}
+
+% --- MATH & FORMATTING ---
 \usepackage{amsmath, amssymb, mathtools}
-\usepackage{bm}
-\usepackage[margin=2.2cm, top=2.5cm, bottom=2.5cm]{geometry}
 \usepackage{microtype}
 \usepackage{parskip}
+
+% --- COLORS & BOXES ---
 \usepackage{xcolor}
 \definecolor{biomedblue}{RGB}{27,75,138}
 \definecolor{biomeddark}{RGB}{15,32,67}
@@ -22,12 +27,8 @@
   colback=biomedblue!4!white, colframe=biomedblue!85!black,
   title={#1}, coltitle=white, fonttitle=\bfseries
 }
-\newtcolorbox{vitalbox}[1][]{
-  enhanced, boxrule=1pt, arc=3pt, left=10pt, right=10pt, top=8pt, bottom=8pt,
-  colback=red!3!white, colframe=alertred!85!black,
-  title={#1}, coltitle=white, fonttitle=\bfseries
-}
 
+% --- TABLES & CODE BLOCKS ---
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{listings}
@@ -40,15 +41,19 @@
   showstringspaces=false,
   tabsize=2
 }
-\usepackage[colorlinks=true,linkcolor=biomedblue,citecolor=biomedblue,urlcolor=biomedblue]{hyperref}
+
+% --- HEADERS & FOOTERS ---
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\color{gray}\textsc{HUST SOICT -- IT5425: Quản trị Dữ liệu \& Trực quan hóa}}
-\fancyhead[R]{\small\color{gray}\textsc{Báo cáo Phân hệ 3 -- TV 3 (EDA Lead)}}
+\fancyhead[R]{\small\color{gray}\textsc{Báo cáo Phân hệ 3 -- TV 3 (EDA)}}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0.4pt}
+
+% Hyperref must be last
+\usepackage[colorlinks=true,linkcolor=biomedblue,citecolor=biomedblue,urlcolor=biomedblue]{hyperref}
 
 \title{%
   \vspace{-1.5cm}
@@ -66,12 +71,11 @@
 \date{Tháng 9 Năm 2026}
 
 \begin{document}
-\selectlanguage{vietnamese}
 \maketitle
 \thispagestyle{fancy}
 
 \begin{abstract}
-Tài liệu này tổng kết toàn bộ kết quả triển khai kỹ thuật của \textbf{Phân hệ 3 (TV 3 -- EDA Lead)} trong dự án Bài tập lớn học phần \textit{Quản trị Dữ liệu và Trực quan hóa (IT5425)}. Phân hệ 3 chịu trách nhiệm tiếp nhận dữ liệu đã được làm sạch từ kho LanceDB (thực hiện bởi Phân hệ 1), tiến hành quy trình Phân tích Khám phá (EDA) và kiểm định giả thuyết thống kê chuyên sâu trên tập mẫu $\mathbf{8{,}828}$ hồ sơ bệnh nhân đủ điều kiện. Hệ thống tự động hóa toàn bộ việc xây dựng Bảng đặc điểm lâm sàng (Table 1), áp dụng thuật toán quyết định kiểm định phi tham số (\textit{Mann-Whitney U}, \textit{Chi-square}), và đánh giá mức độ rủi ro mạch vành 10 năm qua mô hình hồi quy Logistic (\textit{Odds Ratios}). Điểm nhấn kỹ thuật của phân hệ là việc chuẩn hóa Z-score các biến liên tục để đưa hệ số rủi ro về cùng thang đo, kết hợp với kỹ thuật trực quan hóa Split-Violin và Forest Plot chuẩn học thuật, giúp minh bạch hóa các yếu tố nguy cơ.
+Tài liệu này tổng kết toàn bộ kết quả triển khai kỹ thuật của \textbf{Phân hệ 3 (TV 3 -- EDA)} trong dự án Bài tập lớn học phần \textit{Quản trị Dữ liệu và Trực quan hóa (IT5425)}. Phân hệ 3 chịu trách nhiệm tiếp nhận dữ liệu đã được làm sạch từ kho LanceDB, tiến hành quy trình Phân tích Khám phá (EDA) và kiểm định giả thuyết thống kê chuyên sâu trên tập mẫu $\mathbf{8{,}828}$ hồ sơ bệnh nhân đủ điều kiện. Hệ thống tự động hóa toàn bộ việc xây dựng Bảng đặc điểm lâm sàng (Table 1), áp dụng thuật toán quyết định kiểm định phi tham số (\textit{Mann-Whitney U}, \textit{Chi-square}), và đánh giá mức độ rủi ro mạch vành 10 năm qua mô hình hồi quy Logistic (\textit{Odds Ratios}). Điểm nhấn kỹ thuật là việc chuẩn hóa Z-score các biến liên tục, trực quan hóa Split-Violin và Forest Plot chuẩn học thuật, cùng chiến lược sàng lọc đặc trưng tinh gọn để chuyển giao cho các phân hệ phân tích dự báo.
 \end{abstract}
 
 \vspace{0.3cm}
@@ -86,7 +90,7 @@ Trong hệ sinh thái luồng dữ liệu của dự án, Phân hệ 3 đóng va
 \begin{itemize}
     \item \textbf{Cung cấp Insight Lâm Sàng:} Đánh giá sự khác biệt phân phối của các chỉ số sinh hóa (tuổi, huyết áp, đường huyết, BMI, cholesterol) giữa nhóm có và không có biến cố tim mạch.
     \item \textbf{Cung cấp Báo cáo Học thuật (Table 1):} Tự động tổng hợp và tính toán báo cáo đặc điểm bệnh nhân ban đầu, tự động chuyển đổi sang các đại lượng thống kê phù hợp như Median [IQR] cho dữ liệu không chuẩn.
-    \item \textbf{Sàng Lọc Đặc Trưng (Feature Selection) cho TV 4 \& TV 5:} Bảng phân tích Tỷ số chênh (Odds Ratios) là căn cứ định lượng Toán học vững chắc nhất để các thành viên xây dựng mô hình Học Máy (TV 4 \& 5) quyết định giữ hay bỏ các biến số trong thuật toán phân lớp.
+    \item \textbf{Sàng Lọc Đặc Trưng (Feature Selection) cho Phân hệ Học máy:} Bảng phân tích Tỷ số chênh (Odds Ratios) là căn cứ định lượng Toán học vững chắc để định hướng cho việc xây dựng mô hình rủi ro tại Phân hệ 4 và 5.
 \end{itemize}
 
 % ==============================================================================
@@ -99,23 +103,19 @@ Phân hệ 3 đã xây dựng và chuẩn hóa 3 cấu phần mã nguồn phục
 Module chịu trách nhiệm phân tích thống kê mô tả và suy diễn (Univariate Analysis):
 \begin{itemize}
     \item \textbf{\texttt{generate\_table\_one}:} Tích hợp thư viện \texttt{tableone}, hỗ trợ tham số \texttt{nonnormal\_cols} để xuất báo cáo dưới dạng Trung vị [Khoảng tứ phân vị] thay vì Mean (SD) đối với dữ liệu bị lệch phân phối. Xuất tự động định dạng CSV và HTML.
-    \item \textbf{\texttt{run\_hypothesis\_test}:} Thuật toán kiểm định động thông minh: Tự động chạy \textit{Shapiro-Wilk / Normaltest} để xét phân phối. Do dữ liệu sinh hóa thực tế vi phạm giả định chuẩn, hệ thống tự động rẽ nhánh sử dụng \textbf{Mann-Whitney U test} cho biến liên tục và \textbf{Chi-square test} cho biến phân loại.
-    \item \textbf{\texttt{plot\_biochemical\_distributions}:} Vẽ trực quan hóa bằng kỹ thuật Split-Violin plot lồng ghép Boxplot để biểu diễn mật độ xác suất và các mốc tứ phân vị đối sánh trực tiếp 2 nhóm bệnh lý.
+    \item \textbf{\texttt{run\_hypothesis\_test}:} Thuật toán kiểm định động thông minh tự động rẽ nhánh sử dụng \textbf{Mann-Whitney U test} cho biến liên tục vi phạm giả định chuẩn, và \textbf{Chi-square test} cho biến phân loại.
+    \item \textbf{\texttt{plot\_biochemical\_distributions}:} Vẽ trực quan hóa bằng kỹ thuật Split-Violin plot lồng ghép Boxplot để biểu diễn mật độ xác suất đối sánh trực tiếp 2 nhóm bệnh lý.
 \end{itemize}
 
 \subsection{Thư viện Mô hình Logistic \& Tỷ Số Chênh (\texttt{src/biomed\_lake/biostats/odds.py})}
 Module đánh giá rủi ro đa biến (Multivariate Analysis):
 \begin{itemize}
-    \item \textbf{\texttt{calculate\_or\_ci}:} 
-    \begin{itemize}
-        \item Khắc phục nhược điểm thang đo gốc bằng cách áp dụng \textbf{StandardScaler (Z-score)} cho các biến liên tục (\texttt{age, BMI, glucose, tot\_chol}). Điều này giúp Tỷ số chênh (OR) phản ánh mức tăng rủi ro tương ứng với $1$ độ lệch chuẩn ($\sigma$), mang lại góc nhìn tương quan công bằng với các biến phân loại.
-        \item Xây dựng mô hình \texttt{sm.Logit} với hằng số (intercept), trích xuất khoảng tin cậy 95\% (95\% CI) và p-value.
-    \end{itemize}
-    \item \textbf{\texttt{plot\_forest}:} Thuật toán vẽ Forest Plot trực quan hóa các khoảng tin cậy $95\%$ và Tỷ số chênh (OR). Biểu đồ được thiết kế đồng nhất chuẩn học thuật, tập trung làm nổi bật độ lớn của rủi ro thay vì loại bỏ các yếu tố nguy cơ lâm sàng tiềm ẩn do các sai lệch của thống kê đa biến.
+    \item \textbf{\texttt{calculate\_or\_ci}:} Áp dụng chuẩn hóa \textbf{StandardScaler (Z-score)} cho các biến liên tục. Điều này giúp Tỷ số chênh (OR) phản ánh mức tăng rủi ro tương ứng với $1$ độ lệch chuẩn ($\sigma$), mang lại góc nhìn tương quan công bằng với các biến phân loại. Mô hình được xây dựng qua \texttt{sm.Logit} để trích xuất khoảng tin cậy 95\% (CI).
+    \item \textbf{\texttt{plot\_forest}:} Thuật toán vẽ Forest Plot trực quan hóa các khoảng tin cậy 95\% và Tỷ số chênh (OR). Biểu đồ được thiết kế chuẩn mực học thuật, tập trung hiển thị độ lớn của rủi ro, tuân thủ nguyên tắc tính nguyên vẹn của kết quả thống kê.
 \end{itemize}
 
 \subsection{Luồng Thực Thi Toàn Trình (\texttt{pipelines/03\_eda.py})}
-Kịch bản Pipeline kết nối kho lưu trữ LanceDB (từ TV 1), trích xuất Polars DataFrame siêu tốc, cấu hình danh sách các biến phân loại/liên tục, loại bỏ dữ liệu khuyết thiếu (missing values) và kích hoạt song song chuỗi phân tích.
+Kịch bản Pipeline kết nối kho lưu trữ LanceDB, trích xuất Polars DataFrame, kết nối các bảng chiều (Dimension) và bảng thực tế (Fact), loại bỏ dữ liệu khuyết thiếu và kích hoạt song song chuỗi phân tích. Điểm nhấn là việc chuyển đổi thành công cột \texttt{bp\_stage} thành dữ liệu Categorical có thứ tự, tối ưu hóa quá trình nội suy quy chiếu của thuật toán.
 
 % ==============================================================================
 \section{Kết Quả Phân Tích Thực Nghiệm}
@@ -137,7 +137,7 @@ Hệ thống xử lý $\mathbf{8{,}828}$ bệnh nhân đủ điều kiện và i
 --- Giai doan 2: Kiem dinh gia thuyet va ve phan phoi ---
 [+] Dang kiem dinh gia thuyet
 [Ket qua kiem dinh gia thuyet]
-         Bien            Kiem dinh        P-value
+          Bien           Kiem dinh       P-value
            age Mann-Whitney U test 2.618994e-159
         sys_bp Mann-Whitney U test 3.320882e-154
         dia_bp Mann-Whitney U test 1.304637e-106
@@ -163,36 +163,18 @@ is_male                        1.092255  1.348847  1.213789  3.190727e-04
 current_smoker                 0.617207  0.804815  0.704796  2.378338e-07
 diabetes                       0.283383  0.569040  0.401567  2.895679e-07
 bp_meds                        0.317220  0.775254  0.495909  2.093361e-03
-bp_stage_HYPERTENSIVE_CRISIS   2.655679  5.484808  3.816529  4.528944e-13
-bp_stage_NORMAL                0.602265  1.019927  0.783751  6.981020e-02
-bp_stage_STAGE_1_HYPERTENSION  0.998858  1.591501  1.260827  5.113440e-02
-bp_stage_STAGE_2_HYPERTENSION  2.961045  4.729030  3.742041  2.218684e-28
+bp_stage_elevated              0.980462  1.660400  1.275915  6.981020e-02
+bp_stage_stage_1_hypertension  1.362991  1.898721  1.608708  1.888532e-08
+bp_stage_stage_2_hypertension  4.032167  5.653561  4.774526  1.808858e-73
+bp_stage_hypertensive_crisis   3.514825  6.746473  4.869566  1.785337e-21
 [+] Dang ve bieu do Forest
 [OK] PIPELINE 3 HOAN TAT
 \end{lstlisting}
 
-\subsection{Phân Tích Đơn Biến (Univariate Analysis)}
-Thông qua phép thử Mann-Whitney U và Chi-square, hầu hết các biến số lâm sàng đều cho thấy sự phân tách rủi ro cực kỳ mạnh mẽ giữa nhóm bệnh và nhóm khỏe mạnh. Tuổi tác, huyết áp tâm thu/tâm trương, BMI và nồng độ đường huyết đều có $p$-value chạm ngưỡng $\sim 0$. 
-
-\subsection{Phân Tích Đa Biến (Forest Plot \& Odds Ratio)}
-Kết quả hồi quy đa biến mang lại những nhận định sâu sắc về trọng số rủi ro:
+\subsection{Phân Tích Đơn Biến \& Đa Biến}
 \begin{itemize}
-    \item \textbf{Yếu tố quyết định rủi ro cao nhất:} Bệnh nhân rơi vào Cơn Tăng huyết áp cấp cứu (\texttt{HYPERTENSIVE\_CRISIS}) và Tăng huyết áp Giai đoạn 2 (\texttt{STAGE\_2\_HYPERTENSION}) đối mặt với nguy cơ biến cố mạch vành tăng vọt, với OR lần lượt là $\mathbf{3.82}$ và $\mathbf{3.74}$ lần so với nhóm quy chiếu.
-    \item \textbf{Tác động của Sinh hóa \& Tuổi tác (Z-score):} Nhờ kỹ thuật chuẩn hóa, ta thấy rõ khi đường huyết (\texttt{glucose}) tăng thêm $1$ độ lệch chuẩn, rủi ro tăng $69.7\%$ ($\text{OR} = 1.69$). Tương tự, độ tuổi tăng thêm $1\sigma$ đẩy rủi ro lên $64.1\%$ ($\text{OR} = 1.64$).
+    \item \textbf{Phân tích đơn biến:} Hầu hết các biến số sinh hóa và lâm sàng (tuổi, huyết áp tâm thu/tâm trương, BMI, glucose) đều cho thấy sự phân tách rủi ro cực kỳ mạnh mẽ giữa nhóm bệnh và nhóm khỏe mạnh ($p$-value $\sim 0$).
+    \item \textbf{Hồi quy Logistic Đa biến:} Kết quả chỉ ra bệnh nhân thuộc nhóm \texttt{hypertensive\_crisis} và \texttt{stage\_2\_hypertension} có rủi ro mắc bệnh mạch vành (OR) tăng vọt lên tới $\mathbf{4.86}$ và $\mathbf{4.77}$ lần. Kỹ thuật chuẩn hóa cũng làm nổi bật tác động của sự gia tăng đường huyết và tuổi tác (tăng rủi ro thêm khoảng 64\%-69\% trên mỗi độ lệch chuẩn).
 \end{itemize}
-
-% ==============================================================================
-\section{Biện Luận (Discussion)}
-% ==============================================================================
-
-Các kết quả từ Pipeline 03 đặt ra 2 điểm biện luận y khoa và thống kê quan trọng, cần lưu ý cho nhóm lập mô hình Học máy:
-
-\begin{enumerate}
-    \item \textbf{Khử Nhiễu (Confounding) của Y tế Can Thiệp:} 
-    Mô hình ghi nhận kết quả Nghịch lý lâm sàng khi biến tiểu đường (\texttt{diabetes}) có $\text{OR} = 0.40$ và hút thuốc (\texttt{current\_smoker}) có $\text{OR} = 0.70$. Thay vì kết luận tiểu đường có tác dụng "bảo vệ" tim mạch, hiện tượng này được lý giải bằng yếu tố nhiễu kiểm soát y tế: Những bệnh nhân có bệnh lý nền nặng thường được đưa vào lộ trình quản lý nghiêm ngặt, sử dụng thuốc can thiệp mạnh (statin, chống đông máu), từ đó vô tình làm giảm xác suất xảy ra biến cố trong tập mẫu quan sát so với người bình thường không đi khám.
-    
-    \item \textbf{Hiệu Ứng Lấn Át \& Ý Nghĩa Lâm Sàng Của Huyết Áp Giai Đoạn 1:}
-    Trong mô hình hồi quy đa biến, Tăng huyết áp Giai đoạn 1 (\texttt{STAGE\_1\_HYPERTENSION}) có $p = 0.051$ (vạch khoảng tin cậy chạm mốc $0.998$, tiệm cận ranh giới ý nghĩa thống kê $0.05$). Mặc dù ở phân tích đơn biến, đây là một yếu tố tạo ra sự khác biệt rủi ro cực kỳ rõ rệt, nhưng khi đưa vào mô hình tổng thể, rủi ro toán học của nó đã bị lấn át bởi các biến quá mạnh như tuổi tác hay đường huyết. Tuy nhiên, về mặt y khoa thực tiễn, huyết áp Giai đoạn 1 vẫn là một yếu tố nguy cơ tim mạch xác đáng. Do đó, biểu đồ Forest được thiết kế tập trung vào việc hiển thị toàn vẹn độ lớn của Tỷ số chênh (OR) và giữ lại yếu tố nguy cơ này, đảm bảo tính chặt chẽ giữa thống kê và y học.
-\end{enumerate}
 
 \end{document}

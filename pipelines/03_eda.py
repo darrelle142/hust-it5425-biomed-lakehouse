@@ -1,6 +1,6 @@
 import sys
 import lancedb
-import polars as pl
+import pandas as pd
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -22,17 +22,22 @@ def run_pipeline():
 
     print("[*] Đang lấy dữ liệu từ LanceDB")
     db = lancedb.connect(PROJECT_ROOT / 'data' / 'mart' / 'clin.lance')
-    fact_tbl = db.open_table('fact_clinical_cohort').to_polars()
+    dim_guidelines = db.open_table('dim_aha_guidelines').to_pandas()
+    dim_metrics = db.open_table('dim_clinical_metrics').to_pandas()
+    dim_patient = db.open_table('dim_patient').to_pandas()
+    fact_tbl = db.open_table('fact_clinical_cohort').to_pandas()
 
     continuous_cols = ['age', 'sys_bp', 'dia_bp', 'tot_chol', 'BMI', 'glucose']
     categorical_cols = ['is_male', 'current_smoker', 'bp_stage', 'diabetes', 'bp_meds']
     all_cols = continuous_cols + categorical_cols
     target_col = 'ten_year_chd'
 
-    df_clean = fact_tbl.drop_nulls(subset=all_cols + [target_col]).collect()
-    print(f"[*] Kích thước mẫu đủ điều kiện phân tích: {df_clean.height} bệnh nhân")
-
-    df_clean = df_clean.to_pandas()
+    df = fact_tbl.merge(dim_guidelines, on='guideline_id', how='inner').merge(dim_metrics, on='person_id', how='inner').merge(dim_patient, on='person_id', how='inner')
+    df_clean = df.dropna(subset=all_cols + [target_col]).copy()
+    df_clean['bp_stage'] = df_clean['bp_stage'].str.lower()
+    bp_stage_order = ['normal', 'elevated', 'stage_1_hypertension', 'stage_2_hypertension', 'hypertensive_crisis']
+    df_clean['bp_stage'] = pd.Categorical(df_clean['bp_stage'], categories=bp_stage_order, ordered=True)
+    print(f"[*] Kích thước mẫu đủ điều kiện phân tích: {len(df_clean)} bệnh nhân")
 
     print("\n--- Giai đoạn 1: Xây dựng Table 1 ---")
     generate_table_one(df=df_clean, cols=all_cols, categorical=categorical_cols, nonnormal=continuous_cols, target=target_col, output_dir=table_dir)
